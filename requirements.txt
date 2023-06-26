@@ -27,3 +27,4 @@ thop  # FLOPs computation
 streamlit
 wget
 ultralytics
+opencv-python-headless
