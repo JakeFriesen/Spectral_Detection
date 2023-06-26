@@ -20,10 +20,8 @@ st.set_page_config(
 
 # Main page heading
 st.title("Species Detection")
-
 # Sidebar
 st.sidebar.header("ML Model Config")
-
 # Model Options
 model_type = st.sidebar.radio(
     "Select Task", ['Detection', 'Segmentation'])
@@ -49,17 +47,18 @@ source_radio = st.sidebar.radio(
     "Select Source", settings.SOURCES_LIST)
 
 source_img = None
-detection_button_pressed = False
 selected_boxes = []
 
-if 'stage' not in st.session_state:
-    st.session_state.stage = 0
+#Stages of detection process added to session state
+if 'detect' not in st.session_state:
+    st.session_state['detect'] = False
+if 'download' not in st.session_state:
+    st.session_state['download'] = False
 
 # If image is selected
 if source_radio == settings.IMAGE:
     source_img = st.sidebar.file_uploader(
         "Choose an image...", type=("jpg", "jpeg", "png", 'bmp', 'webp'))
-
     col1, col2 = st.columns(2)
 
     with col1:
@@ -86,8 +85,12 @@ if source_radio == settings.IMAGE:
                      use_column_width=True)
             detection_button_pressed = False
         else:
+            #Uploaded image
             st.sidebar.button('Detect Objects', on_click=helper.click_detect)
-            if st.session_state.stage == 1:
+            
+            #If Detection is clicked
+            if st.session_state['detect']:
+                #Perform the prediction
                 res = model.predict(uploaded_image, conf=confidence)
                 boxes = res[0].boxes
                 res_plotted = res[0].plot()[:, :, ::-1]
@@ -103,7 +106,10 @@ if source_radio == settings.IMAGE:
                                 selected_boxes.append(checkbox_label)
                 except Exception as ex:
                     st.write("No image is uploaded yet!")
-                st.sidebar.button("Download", on_click=helper.download_boxes(selected_boxes))
+                st.sidebar.button("Download", on_click=helper.click_download)
+                if st.session_state['download']:
+                    helper.download_boxes(selected_boxes)
+
                     
 
 elif source_radio == settings.VIDEO:

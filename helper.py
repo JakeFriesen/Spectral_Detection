@@ -7,7 +7,9 @@ import cv2
 import settings
 
 def click_detect():
-    st.session_state.stage = 1
+    st.session_state['detect'] = True
+def click_download():
+    st.session_state['download'] = True
 
 def download_boxes(selected_boxes):
     # Create a DataFrame to hold the selected bounding box data
