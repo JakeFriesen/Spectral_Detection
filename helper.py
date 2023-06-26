@@ -1,9 +1,22 @@
 from ultralytics import YOLO
 import streamlit as st
+import pandas as pd
+import base64
 import cv2
-# import pafy
 
 import settings
+
+def download_boxes(selected_boxes):
+    # Create a DataFrame to hold the selected bounding box data
+    df = pd.DataFrame(selected_boxes, columns=["X1", "Y1", "X2",  "Y2"])
+
+    # Convert the DataFrame to a CSV string
+    csv_string = df.to_csv(index=False)
+
+    # Create a download link for the CSV file
+    b64 = base64.b64encode(csv_string.encode()).decode()
+    href = f'<a href="data:file/csv;base64,{b64}" download="selected_boxes.csv">Download Selected Boxes Data</a>'
+    st.sidebar.markdown(href, unsafe_allow_html=True)
 
 
 def load_model(model_path):

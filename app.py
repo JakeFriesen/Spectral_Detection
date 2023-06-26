@@ -8,17 +8,18 @@ import streamlit as st
 # Local Modules
 import settings
 import helper
+import torch
 
 # Setting page layout
 st.set_page_config(
-    page_title="Object Detection using YOLOv8",
-    page_icon="🤖",
+    page_title="Detection Demo",
+    page_icon="🪸",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # Main page heading
-st.title("Object Detection using YOLOv8")
+st.title("Species Detection")
 
 # Sidebar
 st.sidebar.header("ML Model Config")
@@ -48,6 +49,9 @@ source_radio = st.sidebar.radio(
     "Select Source", settings.SOURCES_LIST)
 
 source_img = None
+detection_button_pressed = False
+selected_boxes = []
+
 # If image is selected
 if source_radio == settings.IMAGE:
     source_img = st.sidebar.file_uploader(
@@ -77,8 +81,10 @@ if source_radio == settings.IMAGE:
                 default_detected_image_path)
             st.image(default_detected_image_path, caption='Detected Image',
                      use_column_width=True)
+            detection_button_pressed = False
         else:
-            if st.sidebar.button('Detect Objects'):
+            detection_button_pressed = st.sidebar.button('Detect Objects')
+            if detection_button_pressed:
                 res = model.predict(uploaded_image,
                                     conf=confidence
                                     )
@@ -89,10 +95,17 @@ if source_radio == settings.IMAGE:
                 try:
                     with st.expander("Detection Results"):
                         for box in boxes:
-                            st.write(box.data)
+                            # st.write(box.data)
+                            checkbox_label = f"{box.xyxy}"
+                            checkbox_state = st.checkbox(checkbox_label, value=True)
+                            if checkbox_state:
+                                selected_boxes.append(box.xyxy)
                 except Exception as ex:
                     # st.write(ex)
                     st.write("No image is uploaded yet!")
+            download_button_pressed = st.sidebar.button("Download")
+            if download_button_pressed:
+                helper.download_boxes(selected_boxes)
 
 elif source_radio == settings.VIDEO:
     helper.play_stored_video(confidence, model)
