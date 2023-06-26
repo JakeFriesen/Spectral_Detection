@@ -52,6 +52,9 @@ source_img = None
 detection_button_pressed = False
 selected_boxes = []
 
+if 'stage' not in st.session_state:
+    st.session_state.stage = 0
+
 # If image is selected
 if source_radio == settings.IMAGE:
     source_img = st.sidebar.file_uploader(
@@ -83,8 +86,8 @@ if source_radio == settings.IMAGE:
                      use_column_width=True)
             detection_button_pressed = False
         else:
-            detection_button_pressed = st.sidebar.button('Detect Objects')
-            if detection_button_pressed:
+            st.sidebar.button('Detect Objects', on_click=helper.click_detect)
+            if st.session_state.stage == 1:
                 res = model.predict(uploaded_image,
                                     conf=confidence
                                     )
@@ -99,13 +102,11 @@ if source_radio == settings.IMAGE:
                             checkbox_label = f"{box.xyxy}"
                             checkbox_state = st.checkbox(checkbox_label, value=True)
                             if checkbox_state:
-                                selected_boxes.append(box.xyxy)
+                                selected_boxes.append(checkbox_label)
                 except Exception as ex:
-                    # st.write(ex)
                     st.write("No image is uploaded yet!")
-            download_button_pressed = st.sidebar.button("Download")
-            if download_button_pressed:
-                helper.download_boxes(selected_boxes)
+                st.sidebar.button("Download", on_click=helper.download_boxes(selected_boxes))
+                    
 
 elif source_radio == settings.VIDEO:
     helper.play_stored_video(confidence, model)

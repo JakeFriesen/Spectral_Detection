@@ -6,9 +6,12 @@ import cv2
 
 import settings
 
+def click_detect():
+    st.session_state.stage = 1
+
 def download_boxes(selected_boxes):
     # Create a DataFrame to hold the selected bounding box data
-    df = pd.DataFrame(selected_boxes, columns=["X1", "Y1", "X2",  "Y2"])
+    df = pd.DataFrame(selected_boxes, columns=["Data"])
 
     # Convert the DataFrame to a CSV string
     csv_string = df.to_csv(index=False)
