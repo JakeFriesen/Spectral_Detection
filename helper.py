@@ -8,6 +8,7 @@ import settings
 
 def click_detect():
     st.session_state['detect'] = True
+    st.session_state['predicted'] = False
 def click_download():
     st.session_state['download'] = True
 
@@ -23,6 +24,14 @@ def download_boxes(selected_boxes):
     href = f'<a href="data:file/csv;base64,{b64}" download="selected_boxes.csv">Download Selected Boxes Data</a>'
     st.sidebar.markdown(href, unsafe_allow_html=True)
 
+@st.cache_data
+def predict(_model, _uploaded_image, confidence):
+    res = _model.predict(_uploaded_image, conf=confidence)
+    boxes = res[0].boxes
+    st.session_state['predicted'] = True
+    res_plotted = res[0].plot()[:, :, ::-1]
+    st.image(res_plotted, caption='Detected Image', use_column_width=True)
+    return boxes
 
 def load_model(model_path):
     """
