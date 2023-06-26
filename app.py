@@ -9,7 +9,7 @@ import time
 
 st.set_page_config(layout="wide")
 
-cfg_model_path = 'models/yolov5s.pt'
+cfg_model_path = 'models/urchin_star-jun_16.pt'
 model = None
 confidence = .25
 
