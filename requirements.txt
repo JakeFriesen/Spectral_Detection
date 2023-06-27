@@ -28,3 +28,4 @@ streamlit
 wget
 ultralytics
 opencv-python-headless
+segment_anything

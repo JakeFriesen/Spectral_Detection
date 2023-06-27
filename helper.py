@@ -1,10 +1,25 @@
 from ultralytics import YOLO
+from segment_anything import SamPredictor
 import streamlit as st
 import pandas as pd
 import base64
 import cv2
+import numpy as np
 
 import settings
+
+# def segment(sam_predictor: SamPredictor, image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
+#     sam_predictor.set_image(image)
+#     result_masks = []
+#     for box in xyxy:
+#         masks, scores, logits = sam_predictor.predict(
+#             box=box,
+#             multimask_output=True
+#         )
+#         index = np.argmax(scores)
+#         result_masks.append(masks[index])
+#     return np.array(result_masks)
+
 
 def click_detect():
     st.session_state['detect'] = True
@@ -28,10 +43,27 @@ def download_boxes(selected_boxes):
 def predict(_model, _uploaded_image, confidence):
     res = _model.predict(_uploaded_image, conf=confidence)
     boxes = res[0].boxes
+    masks = res[0].masks
     st.session_state['predicted'] = True
     res_plotted = res[0].plot()[:, :, ::-1]
     st.image(res_plotted, caption='Detected Image', use_column_width=True)
+    # boxes.mask = segment(
+    #     sam_predictor=sam_predictor,
+    #     image=cv2.cvtColor(_uploaded_image, cv2.COLOR_BGR2RGB),
+    #     xyxy=boxes.xyxy
+    # )
+
+    # # annotate image with detections
+    # box_annotator = sv.BoxAnnotator()
+    # mask_annotator = sv.MaskAnnotator()
+    # annotated_image = mask_annotator.annotate(scene=image.copy(), detections=detections)
+    # # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
+    # sv.plot_image(annotated_image, (16, 16))
     return boxes
+
+
+
+
 
 def load_model(model_path):
     """

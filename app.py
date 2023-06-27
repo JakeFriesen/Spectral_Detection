@@ -9,6 +9,13 @@ import streamlit as st
 import settings
 import helper
 import torch
+from segment_anything import sam_model_registry, SamPredictor
+
+# SAM_ENCODER_VERSION = "vit_h"
+# sam = sam_model_registry[SAM_ENCODER_VERSION](checkpoint=SAM_CHECKPOINT_PATH).to(device=DEVICE)
+# sam_predictor = SamPredictor(sam)
+
+
 
 # Setting page layout
 st.set_page_config(
@@ -94,23 +101,18 @@ if source_radio == settings.IMAGE:
             if st.session_state['detect']:
                 #Perform the prediction
                 boxes = helper.predict(model, uploaded_image, confidence)
-                # if st.session_state['predicted'] == False:
-                    # res = model.predict(uploaded_image, conf=confidence)
-                    # boxes = res[0].boxes
-                    # st.session_state['predicted'] = True
-                # res_plotted = res[0].plot()[:, :, ::-1]
-                # st.image(res_plotted, caption='Detected Image', use_column_width=True)
-                    
+
+                #Show the detection results              
                 try:
                     with st.expander("Detection Results"):
                         for box in boxes:
-                            # st.write(box.data)
                             checkbox_label = f"{box.xyxy}"
                             checkbox_state = st.checkbox(checkbox_label, value=True)
                             if checkbox_state:
                                 selected_boxes.append(checkbox_label)
                 except Exception as ex:
                     st.write("No image is uploaded yet!")
+                #Download Button
                 st.sidebar.button("Download", on_click=helper.click_download)
                 if st.session_state['download']:
                     helper.download_boxes(selected_boxes)
