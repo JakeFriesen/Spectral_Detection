@@ -31,15 +31,15 @@ st.title("Species Detection")
 st.sidebar.header("ML Model Config")
 # Model Options
 model_type = st.sidebar.radio(
-    "Select Task", ['Detection', 'Segmentation'])
+    "Select Data Type", ['Drop Quadrat', 'Transect'], help= "This will change video behavior, and area calculations")
 
 confidence = float(st.sidebar.slider(
     "Select Model Confidence", 25, 100, 40)) / 100
 
 # Selecting Detection Or Segmentation
-if model_type == 'Detection':
+if model_type == 'Drop Quadrat':
     model_path = Path(settings.DETECTION_MODEL)
-elif model_type == 'Segmentation':
+elif model_type == 'Transect':
     model_path = Path(settings.SEGMENTATION_MODEL)
 
 # Load Pre-trained ML Model
@@ -51,7 +51,7 @@ except Exception as ex:
 
 st.sidebar.header("Image/Video Config")
 source_radio = st.sidebar.radio(
-    "Select Source", settings.SOURCES_LIST)
+    "Select Source", settings.SOURCES_LIST, help="Choose if a single image or video will be used for detection")
 
 source_img = None
 selected_boxes = []
@@ -64,63 +64,78 @@ if 'download' not in st.session_state:
 if 'predicted' not in st.session_state:
     st.session_state['predicted'] = False
 
-# If image is selected
-if source_radio == settings.IMAGE:
-    source_img = st.sidebar.file_uploader(
-        "Choose an image...", type=("jpg", "jpeg", "png", 'bmp', 'webp'))
-    col1, col2 = st.columns(2)
+tab1, tab2 = st.tabs(["Detection", "About"])
 
-    with col1:
-        try:
+#Main Detection Tab
+with tab1:
+    # If image is selected
+    if source_radio == settings.IMAGE:
+        source_img = st.sidebar.file_uploader(
+            "Choose an image...", type=("jpg", "jpeg", "png", 'bmp', 'webp'))
+        col1, col2 = st.columns(2)
+
+        with col1:
+            try:
+                if source_img is None:
+                    default_image_path = str(settings.DEFAULT_IMAGE)
+                    default_image = PIL.Image.open(default_image_path)
+                    st.image(default_image_path, caption="Default Image",
+                            use_column_width=True)
+                else:
+                    uploaded_image = PIL.Image.open(source_img)
+                    st.image(source_img, caption="Uploaded Image",
+                            use_column_width=True)
+            except Exception as ex:
+                st.error("Error occurred while opening the image.")
+                st.error(ex)
+
+        with col2:
             if source_img is None:
-                default_image_path = str(settings.DEFAULT_IMAGE)
-                default_image = PIL.Image.open(default_image_path)
-                st.image(default_image_path, caption="Default Image",
-                         use_column_width=True)
+                default_detected_image_path = str(settings.DEFAULT_DETECT_IMAGE)
+                default_detected_image = PIL.Image.open(
+                    default_detected_image_path)
+                st.image(default_detected_image_path, caption='Detected Image',
+                        use_column_width=True)
+                detection_button_pressed = False
             else:
-                uploaded_image = PIL.Image.open(source_img)
-                st.image(source_img, caption="Uploaded Image",
-                         use_column_width=True)
-        except Exception as ex:
-            st.error("Error occurred while opening the image.")
-            st.error(ex)
+                #Uploaded image
+                st.sidebar.button('Detect Objects', on_click=helper.click_detect)
+                
+                #If Detection is clicked
+                if st.session_state['detect']:
+                    #Perform the prediction
+                    boxes = helper.predict(model, uploaded_image, confidence)
 
-    with col2:
-        if source_img is None:
-            default_detected_image_path = str(settings.DEFAULT_DETECT_IMAGE)
-            default_detected_image = PIL.Image.open(
-                default_detected_image_path)
-            st.image(default_detected_image_path, caption='Detected Image',
-                     use_column_width=True)
-            detection_button_pressed = False
-        else:
-            #Uploaded image
-            st.sidebar.button('Detect Objects', on_click=helper.click_detect)
-            
-            #If Detection is clicked
-            if st.session_state['detect']:
-                #Perform the prediction
-                boxes = helper.predict(model, uploaded_image, confidence)
+                    #Show the detection results              
+                    try:
+                        with st.expander("Detection Results"):
+                            for box in boxes:
+                                checkbox_label = f"{box.xyxy}"
+                                checkbox_state = st.checkbox(checkbox_label, value=True)
+                                if checkbox_state:
+                                    selected_boxes.append(checkbox_label)
+                    except Exception as ex:
+                        st.write("No image is uploaded yet!")
+                    #Download Button
+                    st.sidebar.button("Download", on_click=helper.click_download)
+                    if st.session_state['download']:
+                        helper.download_boxes(selected_boxes)
 
-                #Show the detection results              
-                try:
-                    with st.expander("Detection Results"):
-                        for box in boxes:
-                            checkbox_label = f"{box.xyxy}"
-                            checkbox_state = st.checkbox(checkbox_label, value=True)
-                            if checkbox_state:
-                                selected_boxes.append(checkbox_label)
-                except Exception as ex:
-                    st.write("No image is uploaded yet!")
-                #Download Button
-                st.sidebar.button("Download", on_click=helper.click_download)
-                if st.session_state['download']:
-                    helper.download_boxes(selected_boxes)
+                        
 
-                    
+    elif source_radio == settings.VIDEO:
+        helper.play_stored_video(confidence, model)
 
-elif source_radio == settings.VIDEO:
-    helper.play_stored_video(confidence, model)
+    else:
+        st.error("Please select a valid source type!")
 
-else:
-    st.error("Please select a valid source type!")
+
+with tab2:
+    st.header("About the App")
+    st.write("Have a question or comment? Let us Know!")
+    st.write("Email me jakefriesen@uvic.ca")
+    st.write("Visit the GitHub for this project: https://github.com/JakeFriesen/Spectral_Detection")
+
+    st.header("How to Use")
+    st.write("Data Type: Drop Quadrat will give area calculations, Transect will not. This also changes how video works")
+    st.write("Source: Image will detect species in a single image, video will detect for the whole image")
