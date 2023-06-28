@@ -8,12 +8,10 @@ import streamlit as st
 # Local Modules
 import settings
 import helper
-import torch
-from segment_anything import sam_model_registry, SamPredictor
 
-# SAM_ENCODER_VERSION = "vit_h"
-# sam = sam_model_registry[SAM_ENCODER_VERSION](checkpoint=SAM_CHECKPOINT_PATH).to(device=DEVICE)
-# sam_predictor = SamPredictor(sam)
+
+
+
 
 #Stages of detection process added to session state
 if 'detect' not in st.session_state:
@@ -106,7 +104,7 @@ with tab1:
 
                     #Show the detection results              
                     selected_boxes = helper.show_detection_results(boxes, labels)
-                    
+
                     #Download Button
                     try:
                         csv = helper.download_boxes(selected_boxes)

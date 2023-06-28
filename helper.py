@@ -1,14 +1,22 @@
 from ultralytics import YOLO
-from segment_anything import SamPredictor
+from segment_anything import sam_model_registry, SamPredictor
 import streamlit as st
 import pandas as pd
 import base64
 import cv2
 import numpy as np
 import supervision as sv
+import torch
 from supervision.draw.color import Color, ColorPalette
 
 import settings
+
+SAM_ENCODER_VERSION = "vit_h"
+SAM_CHECKPOINT_PATH = "weights/sam_vit_h_4b8939.pth"
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+sam = sam_model_registry[SAM_ENCODER_VERSION](checkpoint=SAM_CHECKPOINT_PATH).to(device=DEVICE)
+sam_predictor = SamPredictor(sam)
+
 
 # def segment(sam_predictor: SamPredictor, image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
 #     sam_predictor.set_image(image)
@@ -21,6 +29,19 @@ import settings
 #         index = np.argmax(scores)
 #         result_masks.append(masks[index])
 #     return np.array(result_masks)
+
+def segment(sam_predictor: SamPredictor, image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
+    sam_predictor.set_image(image)
+    result_masks = []
+    for box in xyxy:
+        masks, scores, logits = sam_predictor.predict(
+            box=box,
+            multimask_output=True
+        )
+        index = np.argmax(scores)
+        result_masks.append(masks[index])
+    return np.array(result_masks)
+
 
 
 def click_detect():
@@ -55,22 +76,24 @@ def predict(_model, _uploaded_image, confidence):
         ]
     box_annotator = sv.BoxAnnotator(text_scale=3, text_thickness=4, thickness=4, text_color=Color.white())
     annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=detections, labels=labels)
-    sv.plot_image(annotated_image, (16, 16))
     st.image(annotated_image, caption='Detected Image', use_column_width=True)
 
     #Segmentation
-    # boxes.mask = segment(
-    #     sam_predictor=sam_predictor,
-    #     image=cv2.cvtColor(_uploaded_image, cv2.COLOR_BGR2RGB),
-    #     xyxy=boxes.xyxy
-    # )
+    # segmented_image = sv.Detections.from_sam(res[0])
+    # st.image(segmented_image, caption='Segmented Image', use_column_width=True)
+    detections.mask = segment(
+        sam_predictor=sam_predictor,
+        image=cv2.cvtColor(np.array(_uploaded_image), cv2.COLOR_BGR2RGB),
+        xyxy=detections.xyxy
+    )
 
-    # # annotate image with detections
-    # box_annotator = sv.BoxAnnotator()
-    # mask_annotator = sv.MaskAnnotator()
-    # annotated_image = mask_annotator.annotate(scene=image.copy(), detections=detections)
-    # # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
+    # annotate image with detections
+    box_annotator = sv.BoxAnnotator()
+    mask_annotator = sv.MaskAnnotator()
+    annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
+    # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
     # sv.plot_image(annotated_image, (16, 16))
+    st.image(annotated_image, caption='Segmented Image', use_column_width=True)
     return boxes, labels
 
 
