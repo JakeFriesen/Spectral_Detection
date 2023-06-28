@@ -15,34 +15,42 @@ from segment_anything import sam_model_registry, SamPredictor
 # sam = sam_model_registry[SAM_ENCODER_VERSION](checkpoint=SAM_CHECKPOINT_PATH).to(device=DEVICE)
 # sam_predictor = SamPredictor(sam)
 
-
+#Stages of detection process added to session state
+if 'detect' not in st.session_state:
+    st.session_state['detect'] = False
+if 'download' not in st.session_state:
+    st.session_state['download'] = False
+if 'predicted' not in st.session_state:
+    st.session_state['predicted'] = False
 
 # Setting page layout
 st.set_page_config(
-    page_title="Detection Demo",
+    page_title="ECE 499 Marine Species Detection",
     page_icon="🪸",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # Main page heading
-st.title("Species Detection")
+st.title("🪸 ECE 499 Marine Species Detection")
 # Sidebar
 st.sidebar.header("ML Model Config")
 # Model Options
-model_type = st.sidebar.radio(
-    "Select Data Type", ['Drop Quadrat', 'Transect'], help= "This will change video behavior, and area calculations")
+# model_type = st.sidebar.radio(
+#     "Select Data Type", ['Drop Quadrat', 'Transect'], help= "This will change video behavior, and area calculations")
+model_type = st.sidebar.radio("Select Model", ["Built-in", "Upload"])
 
 confidence = float(st.sidebar.slider(
     "Select Model Confidence", 25, 100, 40)) / 100
 
 # Selecting Detection Or Segmentation
-if model_type == 'Drop Quadrat':
+if model_type == 'Built-in':
     model_path = Path(settings.DETECTION_MODEL)
-elif model_type == 'Transect':
-    model_path = Path(settings.SEGMENTATION_MODEL)
+elif model_type == 'Upload':
+    model_file = st.sidebar.file_uploader("Upload a model...", type=("pt"))
+    model_path = Path(settings.MODEL_DIR, model_file.name)
 
-# Load Pre-trained ML Model
+# Load ML Model
 try:
     model = helper.load_model(model_path)
 except Exception as ex:
@@ -54,16 +62,6 @@ source_radio = st.sidebar.radio(
     "Select Source", settings.SOURCES_LIST, help="Choose if a single image or video will be used for detection")
 
 source_img = None
-selected_boxes = []
-
-#Stages of detection process added to session state
-if 'detect' not in st.session_state:
-    st.session_state['detect'] = False
-if 'download' not in st.session_state:
-    st.session_state['download'] = False
-if 'predicted' not in st.session_state:
-    st.session_state['predicted'] = False
-
 tab1, tab2 = st.tabs(["Detection", "About"])
 
 #Main Detection Tab
@@ -104,27 +102,26 @@ with tab1:
                 #If Detection is clicked
                 if st.session_state['detect']:
                     #Perform the prediction
-                    boxes = helper.predict(model, uploaded_image, confidence)
+                    boxes, labels = helper.predict(model, uploaded_image, confidence)
 
                     #Show the detection results              
-                    try:
-                        with st.expander("Detection Results"):
-                            for box in boxes:
-                                checkbox_label = f"{box.xyxy}"
-                                checkbox_state = st.checkbox(checkbox_label, value=True)
-                                if checkbox_state:
-                                    selected_boxes.append(checkbox_label)
-                    except Exception as ex:
-                        st.write("No image is uploaded yet!")
+                    selected_boxes = helper.show_detection_results(boxes, labels)
+                    
                     #Download Button
-                    st.sidebar.button("Download", on_click=helper.click_download)
-                    if st.session_state['download']:
-                        helper.download_boxes(selected_boxes)
+                    try:
+                        csv = helper.download_boxes(selected_boxes)
+                    except:
+                        st.write("No results yet...")
+                    st.sidebar.download_button( label = "Download Results", 
+                                        data=csv, 
+                                        file_name="Detection_Results.csv", 
+                                        mime='text/csv')
 
                         
 
     elif source_radio == settings.VIDEO:
-        helper.play_stored_video(confidence, model)
+        st.write("Under Construction...")
+        # helper.play_stored_video(confidence, model)
 
     else:
         st.error("Please select a valid source type!")
@@ -137,5 +134,4 @@ with tab2:
     st.write("Visit the GitHub for this project: https://github.com/JakeFriesen/Spectral_Detection")
 
     st.header("How to Use")
-    st.write("Data Type: Drop Quadrat will give area calculations, Transect will not. This also changes how video works")
     st.write("Source: Image will detect species in a single image, video will detect for the whole image")

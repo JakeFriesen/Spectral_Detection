@@ -5,6 +5,8 @@ import pandas as pd
 import base64
 import cv2
 import numpy as np
+import supervision as sv
+from supervision.draw.color import Color, ColorPalette
 
 import settings
 
@@ -32,12 +34,12 @@ def download_boxes(selected_boxes):
     df = pd.DataFrame(selected_boxes, columns=["Data"])
 
     # Convert the DataFrame to a CSV string
-    csv_string = df.to_csv(index=False)
-
+    csv_string = df.to_csv().encode('utf-8')
+    return csv_string
     # Create a download link for the CSV file
-    b64 = base64.b64encode(csv_string.encode()).decode()
-    href = f'<a href="data:file/csv;base64,{b64}" download="selected_boxes.csv">Download Selected Boxes Data</a>'
-    st.sidebar.markdown(href, unsafe_allow_html=True)
+    # b64 = base64.b64encode(csv_string.encode()).decode()
+    # href = f'<a href="data:file/csv;base64,{b64}" download="selected_boxes.csv">Download Selected Boxes Data</a>'
+    # st.markdown(href, unsafe_allow_html=True)
 
 @st.cache_data
 def predict(_model, _uploaded_image, confidence):
@@ -45,8 +47,18 @@ def predict(_model, _uploaded_image, confidence):
     boxes = res[0].boxes
     masks = res[0].masks
     st.session_state['predicted'] = True
-    res_plotted = res[0].plot()[:, :, ::-1]
-    st.image(res_plotted, caption='Detected Image', use_column_width=True)
+    detections = sv.Detections.from_yolov8(res[0])
+    classes = ["Sea Urchin"]
+    labels = [
+        f"{idx} {classes[class_id]} {confidence:0.2f}"
+        for idx, [_, _, confidence, class_id, _] in enumerate(detections)
+        ]
+    box_annotator = sv.BoxAnnotator(text_scale=3, text_thickness=4, thickness=4, text_color=Color.white())
+    annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=detections, labels=labels)
+    sv.plot_image(annotated_image, (16, 16))
+    st.image(annotated_image, caption='Detected Image', use_column_width=True)
+
+    #Segmentation
     # boxes.mask = segment(
     #     sam_predictor=sam_predictor,
     #     image=cv2.cvtColor(_uploaded_image, cv2.COLOR_BGR2RGB),
@@ -59,7 +71,27 @@ def predict(_model, _uploaded_image, confidence):
     # annotated_image = mask_annotator.annotate(scene=image.copy(), detections=detections)
     # # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
     # sv.plot_image(annotated_image, (16, 16))
-    return boxes
+    return boxes, labels
+
+
+
+def show_detection_results(boxes, labels):
+    selected_boxes = []
+    try:
+        with st.expander("Detection Results"):
+            for idx, box in enumerate(boxes):
+                checkbox_label = f"{labels[idx]}"
+                checkbox_state = st.checkbox(checkbox_label, value=True)
+                if checkbox_state:
+                    #TODO: Format this result for csv!
+                    selected_boxes.append(f"{box.xyxy}")
+    except Exception as ex:
+        st.write("No image is uploaded yet!")
+    return selected_boxes
+
+
+
+
 
 
 
