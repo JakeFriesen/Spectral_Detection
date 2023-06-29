@@ -12,7 +12,8 @@ from supervision.draw.color import Color, ColorPalette
 
 import settings
 
-def init_func():
+@st.cache_data
+def init_models():
     SAM_ENCODER_VERSION = "vit_h"
     SAM_CHECKPOINT_PATH = "weights/sam_vit_h_4b8939.pth"
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -20,13 +21,17 @@ def init_func():
     global sam_predictor 
     sam_predictor = SamPredictor(sam)
 
+def init_func():
+    init_models()
     global file_name 
     file_name = ""
     st.session_state['initialized'] = True
 
 
-
-def segment(sam_predictor: SamPredictor, image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
+# Segment Anything Model
+# Runs the segmenter, with proper data formatting
+def segment(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
+    global sam_predictor
     sam_predictor.set_image(image)
     result_masks = []
     for box in xyxy:
@@ -39,22 +44,32 @@ def segment(sam_predictor: SamPredictor, image: np.ndarray, xyxy: np.ndarray) ->
     return np.array(result_masks)
 
 
+# Checks that a new image is loaded
+# Changes the session state accordingly
 def change_image(img):
     global file_name
     if img.name != file_name:
-        st.write("New Name: ", img.name, "Old Name: ", file_name)
-        
         file_name = img.name
         st.session_state['detect'] = False
         st.session_state['predict'] = False
-    else:
-        st.write("No Change!")
 
+# Use this to repridict IMMEDIATELY, 
+# Detect Does not have to be pressed again
+def repredict():
+    st.session_state['predict'] = False
+
+# Use this to repredict AFTER pressing detect
+def redetect():
+    st.session_state['predict'] = False
+    st.session_state['detect'] = False
+
+# Detect Button 
 def click_detect():
     st.session_state['detect'] = True
-def click_download():
-    st.session_state['download'] = True
 
+
+# Creates the CSV file with the result data
+# TODO: This needs a lot of formatting
 def download_boxes(selected_boxes):
     # Create a DataFrame to hold the selected bounding box data
     df = pd.DataFrame(selected_boxes, columns=["Data"])
@@ -64,7 +79,9 @@ def download_boxes(selected_boxes):
     return csv_string
 
 
-# @st.cache_data
+# Predict Function
+# Performs the object detection and image segmentation
+# Also runs the results statistics 
 def predict(_model, _uploaded_image, confidence, detect_type):
     boxes = []
     labels = []
@@ -73,7 +90,7 @@ def predict(_model, _uploaded_image, confidence, detect_type):
         boxes = res[0].boxes
         masks = res[0].masks
         detections = sv.Detections.from_yolov8(res[0])
-        classes = ["Sea Urchin", "Sea Star"]
+        classes = res[0].names
         if(detections is not None):
             labels = [
                 f"{idx} {classes[class_id]} {confidence:0.2f}"
@@ -85,22 +102,22 @@ def predict(_model, _uploaded_image, confidence, detect_type):
         st.session_state['predict'] = True
     #Segmentation
     if detect_type == "Objects + Segmentation":
-        #Do the Segmentation
-        detections.mask = segment(
-            sam_predictor=sam_predictor,
-            image=cv2.cvtColor(np.array(_uploaded_image), cv2.COLOR_BGR2RGB),
-            xyxy=detections.xyxy
-        )
-        # annotate image with detections
-        box_annotator = sv.BoxAnnotator()
-        mask_annotator = sv.MaskAnnotator()
-        annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
-        # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
-        st.image(annotated_image, caption='Segmented Image', use_column_width=True)
-        results_math(detections, _uploaded_image)
+        with st.spinner('Running Segmenter...'):
+            #Do the Segmentation
+            detections.mask = segment(
+                image=cv2.cvtColor(np.array(_uploaded_image), cv2.COLOR_BGR2RGB),
+                xyxy=detections.xyxy
+            )
+            # annotate image with detections
+            box_annotator = sv.BoxAnnotator()
+            mask_annotator = sv.MaskAnnotator()
+            annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
+            # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
+            st.image(annotated_image, caption='Segmented Image', use_column_width=True)
+            results_math(detections, _uploaded_image)
     return boxes, labels
 
-
+#TODO: Class differentiation!!!
 def results_math(detections, image):
     grid_size_dimension = math.ceil(math.sqrt(len(detections.mask)))
 
@@ -115,6 +132,7 @@ def results_math(detections, image):
 
     st.write("The Total Percentage of Sea Urchins in this image is:", total_percentage, "%")
     st.write("Total Number of Sea Urchins is: ", len(detections))
+    st.write("I know this is only ever sea urchins... I'll fix it")
 
 
 

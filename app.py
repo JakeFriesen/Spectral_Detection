@@ -15,8 +15,6 @@ import helper
 #Stages of detection process added to session state
 if 'detect' not in st.session_state:
     st.session_state['detect'] = False
-if 'download' not in st.session_state:
-    st.session_state['download'] = False
 if 'predicted' not in st.session_state:
     st.session_state['predicted'] = False
 if 'initialized' not in st.session_state:
@@ -41,31 +39,40 @@ detect_type = st.sidebar.radio("Choose Detection Type", ["Objects Only", "Object
 model_type = st.sidebar.radio("Select Model", ["Built-in", "Upload"])
 
 confidence = float(st.sidebar.slider(
-    "Select Model Confidence", 25, 100, 40)) / 100
+    "Select Model Confidence", 25, 100, 40
+    , on_change = helper.repredict()
+    )) / 100
 
-# Selecting Detection Or Segmentation
+# Selecting The Model to use
 if model_type == 'Built-in':
+    #Built in model - Will be the best we currently have
     model_path = Path(settings.DETECTION_MODEL)
+    try:
+        model = helper.load_model(model_path)
+    except Exception as ex:
+        st.sidebar.write("Unable to load model...")
+        st.error(f"Unable to load model. Check the specified path: {model_path}")
+        # st.error(ex)
 elif model_type == 'Upload':
+    #Uploaded Model - Whatever you want to try out
     model_file = st.sidebar.file_uploader("Upload a model...", type=("pt"))
     try:
         model_path = Path(settings.MODEL_DIR, model_file.name)
-    except:
-        st.sidebar.write("No Model Uploaded Yet...")
+        with open(model_path, 'wb') as file:
+            file.write(model_file.getbuffer())
 
-# Load ML Model
-try:
-    model = helper.load_model(model_path)
-except Exception as ex:
-    st.sidebar.write("Unable to load model...")
-    # st.error(f"Unable to load model. Check the specified path: {model_path}")
-    # st.error(ex)
+        model = helper.load_model(model_path)
+    except Exception as ex:
+        st.sidebar.write("No Model Uploaded Yet...")
+        # st.error(ex)
+
 
 st.sidebar.header("Image/Video Config")
 source_radio = st.sidebar.radio(
     "Select Source", settings.SOURCES_LIST, help="Choose if a single image or video will be used for detection")
 
-
+# Initializing Functions
+# Put here so that the sidebars and title show up while it loads
 if st.session_state["initialized"] == False:
     with st.spinner('Initializing...'):
         helper.init_func()
