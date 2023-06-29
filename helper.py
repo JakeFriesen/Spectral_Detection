@@ -14,8 +14,8 @@ import settings
 
 @st.cache_data
 def init_models():
-    SAM_ENCODER_VERSION = "vit_l"
-    SAM_CHECKPOINT_PATH = "weights/sam_vit_l_0b3195.pth"
+    SAM_ENCODER_VERSION = "vit_b"
+    SAM_CHECKPOINT_PATH = "weights/sam_vit_b_01ec64.pth"
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     sam = sam_model_registry[SAM_ENCODER_VERSION](checkpoint=SAM_CHECKPOINT_PATH).to(device=DEVICE)
     global sam_predictor 
