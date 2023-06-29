@@ -1,3 +1,4 @@
+import math
 from ultralytics import YOLO
 from segment_anything import sam_model_registry, SamPredictor
 import streamlit as st
@@ -11,24 +12,19 @@ from supervision.draw.color import Color, ColorPalette
 
 import settings
 
-SAM_ENCODER_VERSION = "vit_h"
-SAM_CHECKPOINT_PATH = "weights/sam_vit_h_4b8939.pth"
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-sam = sam_model_registry[SAM_ENCODER_VERSION](checkpoint=SAM_CHECKPOINT_PATH).to(device=DEVICE)
-sam_predictor = SamPredictor(sam)
+def init_func():
+    SAM_ENCODER_VERSION = "vit_h"
+    SAM_CHECKPOINT_PATH = "weights/sam_vit_h_4b8939.pth"
+    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    sam = sam_model_registry[SAM_ENCODER_VERSION](checkpoint=SAM_CHECKPOINT_PATH).to(device=DEVICE)
+    global sam_predictor 
+    sam_predictor = SamPredictor(sam)
+
+    global file_name 
+    file_name = ""
+    st.session_state['initialized'] = True
 
 
-# def segment(sam_predictor: SamPredictor, image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
-#     sam_predictor.set_image(image)
-#     result_masks = []
-#     for box in xyxy:
-#         masks, scores, logits = sam_predictor.predict(
-#             box=box,
-#             multimask_output=True
-#         )
-#         index = np.argmax(scores)
-#         result_masks.append(masks[index])
-#     return np.array(result_masks)
 
 def segment(sam_predictor: SamPredictor, image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
     sam_predictor.set_image(image)
@@ -43,10 +39,19 @@ def segment(sam_predictor: SamPredictor, image: np.ndarray, xyxy: np.ndarray) ->
     return np.array(result_masks)
 
 
+def change_image(img):
+    global file_name
+    if img.name != file_name:
+        st.write("New Name: ", img.name, "Old Name: ", file_name)
+        
+        file_name = img.name
+        st.session_state['detect'] = False
+        st.session_state['predict'] = False
+    else:
+        st.write("No Change!")
 
 def click_detect():
     st.session_state['detect'] = True
-    st.session_state['predicted'] = False
 def click_download():
     st.session_state['download'] = True
 
@@ -57,44 +62,59 @@ def download_boxes(selected_boxes):
     # Convert the DataFrame to a CSV string
     csv_string = df.to_csv().encode('utf-8')
     return csv_string
-    # Create a download link for the CSV file
-    # b64 = base64.b64encode(csv_string.encode()).decode()
-    # href = f'<a href="data:file/csv;base64,{b64}" download="selected_boxes.csv">Download Selected Boxes Data</a>'
-    # st.markdown(href, unsafe_allow_html=True)
 
-@st.cache_data
-def predict(_model, _uploaded_image, confidence):
-    res = _model.predict(_uploaded_image, conf=confidence)
-    boxes = res[0].boxes
-    masks = res[0].masks
-    st.session_state['predicted'] = True
-    detections = sv.Detections.from_yolov8(res[0])
-    classes = ["Sea Urchin"]
-    labels = [
-        f"{idx} {classes[class_id]} {confidence:0.2f}"
-        for idx, [_, _, confidence, class_id, _] in enumerate(detections)
-        ]
-    box_annotator = sv.BoxAnnotator(text_scale=3, text_thickness=4, thickness=4, text_color=Color.white())
-    annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=detections, labels=labels)
-    st.image(annotated_image, caption='Detected Image', use_column_width=True)
 
+# @st.cache_data
+def predict(_model, _uploaded_image, confidence, detect_type):
+    boxes = []
+    labels = []
+    if st.session_state['predict'] == False:
+        res = _model.predict(_uploaded_image, conf=confidence)
+        boxes = res[0].boxes
+        masks = res[0].masks
+        detections = sv.Detections.from_yolov8(res[0])
+        classes = ["Sea Urchin", "Sea Star"]
+        if(detections is not None):
+            labels = [
+                f"{idx} {classes[class_id]} {confidence:0.2f}"
+                for idx, [_, _, confidence, class_id, _] in enumerate(detections)
+                ]
+        box_annotator = sv.BoxAnnotator(text_scale=3, text_thickness=4, thickness=4, text_color=Color.white())
+        annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=detections, labels=labels)
+        st.image(annotated_image, caption='Detected Image', use_column_width=True)
+        st.session_state['predict'] = True
     #Segmentation
-    # segmented_image = sv.Detections.from_sam(res[0])
-    # st.image(segmented_image, caption='Segmented Image', use_column_width=True)
-    detections.mask = segment(
-        sam_predictor=sam_predictor,
-        image=cv2.cvtColor(np.array(_uploaded_image), cv2.COLOR_BGR2RGB),
-        xyxy=detections.xyxy
-    )
-
-    # annotate image with detections
-    box_annotator = sv.BoxAnnotator()
-    mask_annotator = sv.MaskAnnotator()
-    annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
-    # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
-    # sv.plot_image(annotated_image, (16, 16))
-    st.image(annotated_image, caption='Segmented Image', use_column_width=True)
+    if detect_type == "Objects + Segmentation":
+        #Do the Segmentation
+        detections.mask = segment(
+            sam_predictor=sam_predictor,
+            image=cv2.cvtColor(np.array(_uploaded_image), cv2.COLOR_BGR2RGB),
+            xyxy=detections.xyxy
+        )
+        # annotate image with detections
+        box_annotator = sv.BoxAnnotator()
+        mask_annotator = sv.MaskAnnotator()
+        annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
+        # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
+        st.image(annotated_image, caption='Segmented Image', use_column_width=True)
+        results_math(detections, _uploaded_image)
     return boxes, labels
+
+
+def results_math(detections, image):
+    grid_size_dimension = math.ceil(math.sqrt(len(detections.mask)))
+
+    segmentation_mask = detections.mask
+    binary_mask = np.where(segmentation_mask > 0.5, 1, 0)
+    white_background = np.ones_like(image) * 255
+    new_images = white_background * (1 - binary_mask[..., np.newaxis]) + image * binary_mask[..., np.newaxis]
+
+    total_percentage = np.sum(new_images != 255) / (new_images[0].size) *100
+    percentage = [np.sum(x != 255)/(x.size)*100 for x in new_images]
+    titles = ["Coverage:" + str(np.around(x,2)) + "%" for x in percentage]
+
+    st.write("The Total Percentage of Sea Urchins in this image is:", total_percentage, "%")
+    st.write("Total Number of Sea Urchins is: ", len(detections))
 
 
 

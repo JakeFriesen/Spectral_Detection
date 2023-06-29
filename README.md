@@ -4,14 +4,14 @@ This needs a write up about the project
 
 
 ## TODO:
-- [ ] User Interface
-    - [ ] Upload your own model
+- [ ] User Interface (Jake)
+    - [x] Upload your own model
     - [ ] Choose image/video, transect/drop quadrat, confidence
-    - [ ] Manual selection of detections (check how intuitive this is)
+    - [x] Manual selection of detections (check how intuitive this is)
     - [ ] Slider for video slicing
     - [ ] Batch detection workflow
     - [ ] Manual substrate classifier
-- [ ] SAM Integration into website
+- [x] SAM Integration into website (Jake)
 - [ ] Video parsing function
     - [ ] Selectable frame sequence (transects)
     - [ ] Individual tracking after detection (transects)
@@ -20,13 +20,13 @@ This needs a write up about the project
     - [ ] Area calculation inside pvc pipe
     - [ ] Diameter of urchins, stars?
     - [ ] Spreadsheet formatting
-- [ ] Model
+- [ ] Model (Matt)
     - [ ] Better kelp model
     - [ ] More data from Romina (?) to make models better
     - [ ] Subclass model for sea stars
 - [ ] Manual addition of detections
     - [ ] Using a python chart? Need to convert detection results 
-    - [ ] Research required to determine feasibility
+    - [ ] https://discuss.streamlit.io/t/new-component-streamlit-image-annotation-a-easy-way-to-annotate-images-using-streamlit/41146
 - [ ] Documentation
     - [ ] A lot of this, for everything
     - [ ] Add it to the GitHub: https://github.com/JakeFriesen/Spectral_Detection

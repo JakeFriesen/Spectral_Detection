@@ -12,7 +12,6 @@ import helper
 
 
 
-
 #Stages of detection process added to session state
 if 'detect' not in st.session_state:
     st.session_state['detect'] = False
@@ -20,6 +19,10 @@ if 'download' not in st.session_state:
     st.session_state['download'] = False
 if 'predicted' not in st.session_state:
     st.session_state['predicted'] = False
+if 'initialized' not in st.session_state:
+    st.session_state['initialized'] = False
+
+
 
 # Setting page layout
 st.set_page_config(
@@ -32,10 +35,9 @@ st.set_page_config(
 # Main page heading
 st.title("🪸 ECE 499 Marine Species Detection")
 # Sidebar
-st.sidebar.header("ML Model Config")
+st.sidebar.header("Detection Configuration")
 # Model Options
-# model_type = st.sidebar.radio(
-#     "Select Data Type", ['Drop Quadrat', 'Transect'], help= "This will change video behavior, and area calculations")
+detect_type = st.sidebar.radio("Choose Detection Type", ["Objects Only", "Objects + Segmentation"])
 model_type = st.sidebar.radio("Select Model", ["Built-in", "Upload"])
 
 confidence = float(st.sidebar.slider(
@@ -46,18 +48,28 @@ if model_type == 'Built-in':
     model_path = Path(settings.DETECTION_MODEL)
 elif model_type == 'Upload':
     model_file = st.sidebar.file_uploader("Upload a model...", type=("pt"))
-    model_path = Path(settings.MODEL_DIR, model_file.name)
+    try:
+        model_path = Path(settings.MODEL_DIR, model_file.name)
+    except:
+        st.sidebar.write("No Model Uploaded Yet...")
 
 # Load ML Model
 try:
     model = helper.load_model(model_path)
 except Exception as ex:
-    st.error(f"Unable to load model. Check the specified path: {model_path}")
-    st.error(ex)
+    st.sidebar.write("Unable to load model...")
+    # st.error(f"Unable to load model. Check the specified path: {model_path}")
+    # st.error(ex)
 
 st.sidebar.header("Image/Video Config")
 source_radio = st.sidebar.radio(
     "Select Source", settings.SOURCES_LIST, help="Choose if a single image or video will be used for detection")
+
+
+if st.session_state["initialized"] == False:
+    with st.spinner('Initializing...'):
+        helper.init_func()
+
 
 source_img = None
 tab1, tab2 = st.tabs(["Detection", "About"])
@@ -68,11 +80,15 @@ with tab1:
     if source_radio == settings.IMAGE:
         source_img = st.sidebar.file_uploader(
             "Choose an image...", type=("jpg", "jpeg", "png", 'bmp', 'webp'))
+        if source_img is not None:
+                helper.change_image(source_img)
+        
         col1, col2 = st.columns(2)
 
         with col1:
             try:
                 if source_img is None:
+                    file_name = ""
                     default_image_path = str(settings.DEFAULT_IMAGE)
                     default_image = PIL.Image.open(default_image_path)
                     st.image(default_image_path, caption="Default Image",
@@ -92,7 +108,6 @@ with tab1:
                     default_detected_image_path)
                 st.image(default_detected_image_path, caption='Detected Image',
                         use_column_width=True)
-                detection_button_pressed = False
             else:
                 #Uploaded image
                 st.sidebar.button('Detect Objects', on_click=helper.click_detect)
@@ -100,8 +115,7 @@ with tab1:
                 #If Detection is clicked
                 if st.session_state['detect']:
                     #Perform the prediction
-                    boxes, labels = helper.predict(model, uploaded_image, confidence)
-
+                    boxes, labels = helper.predict(model, uploaded_image, confidence, detect_type)
                     #Show the detection results              
                     selected_boxes = helper.show_detection_results(boxes, labels)
 
