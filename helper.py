@@ -70,13 +70,31 @@ def click_detect():
 
 # Creates the CSV file with the result data
 # TODO: This needs a lot of formatting
-def download_boxes(selected_boxes):
+def download_results(selected_boxes, substrate, img_name):
     # Create a DataFrame to hold the selected bounding box data
-    df = pd.DataFrame(selected_boxes, columns=["Data"])
+    df = pd.DataFrame(selected_boxes, columns=[
+        "Data"
+        # "Image",
+        # "# Sea Urchin",
+        # "% Sea Urchin",
+        # "# Sea Star",
+        # "% Sea Star",
+        # "# Kelp",
+        # "% Kelp"
+        ])
 
     # Convert the DataFrame to a CSV string
     csv_string = df.to_csv().encode('utf-8')
     return csv_string
+
+def download_boxes(selected_boxes, img_name):
+    #Detections in YOLO format
+    st.write(selected_boxes)
+    st.write(img_name)
+
+
+
+
 
 
 # Predict Function
@@ -100,37 +118,62 @@ def predict(_model, _uploaded_image, confidence, detect_type):
         annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=detections, labels=labels)
         st.image(annotated_image, caption='Detected Image', use_column_width=True)
         st.session_state['predict'] = True
-    #Segmentation
-    if detect_type == "Objects + Segmentation":
-        with st.spinner('Running Segmenter...'):
-            #Do the Segmentation
-            detections.mask = segment(
-                image=cv2.cvtColor(np.array(_uploaded_image), cv2.COLOR_BGR2RGB),
-                xyxy=detections.xyxy
-            )
-            # annotate image with detections
-            box_annotator = sv.BoxAnnotator()
-            mask_annotator = sv.MaskAnnotator()
-            annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
-            # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
-            st.image(annotated_image, caption='Segmented Image', use_column_width=True)
-            results_math(detections, _uploaded_image)
-    return boxes, labels
+        #Segmentation
+        if detect_type == "Objects + Segmentation":
+            with st.spinner('Running Segmenter...'):
+                #Do the Segmentation
+                detections.mask = segment(
+                    image=cv2.cvtColor(np.array(_uploaded_image), cv2.COLOR_BGR2RGB),
+                    xyxy=detections.xyxy
+                )
+                # annotate image with detections
+                box_annotator = sv.BoxAnnotator()
+                mask_annotator = sv.MaskAnnotator()
+                annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
+                # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
+                st.image(annotated_image, caption='Segmented Image', use_column_width=True)
+                # results_math(detections, _uploaded_image, classes)
+    return boxes, detections, classes, labels
 
 #TODO: Class differentiation!!!
-def results_math(detections, image):
-    grid_size_dimension = math.ceil(math.sqrt(len(detections.mask)))
+def results_math(detections, _image, classes):
 
     segmentation_mask = detections.mask
+    class_id_list = detections.class_id
     binary_mask = np.where(segmentation_mask > 0.5, 1, 0)
-    white_background = np.ones_like(image) * 255
-    new_images = white_background * (1 - binary_mask[..., np.newaxis]) + image * binary_mask[..., np.newaxis]
 
-    total_percentage = np.sum(new_images != 255) / (new_images[0].size) *100
-    percentage = [np.sum(x != 255)/(x.size)*100 for x in new_images]
-    titles = ["Coverage:" + str(np.around(x,2)) + "%" for x in percentage]
+    white_background = np.ones_like(_image) * 255
+    new_images = white_background * (1 - binary_mask[..., np.newaxis]) + _image * binary_mask[..., np.newaxis]
 
-    st.write("The Total Percentage of Sea Urchins in this image is:", total_percentage, "%")
+    results = {}
+    class_num = {}
+    #Convert the masks to coverage percentages, split into classes
+    #TODO: This has to be done AFTER the chosen detections results are picked!
+    for idx, class_id in enumerate(class_id_list):
+        sum = np.sum(new_images[idx] != 255) / new_images[idx].size * 100
+
+        if classes[class_id] not in results:
+            results[classes[class_id]] = 0.00
+        if classes[class_id] not in class_num:
+            class_num[classes[class_id]] = 0
+
+        results[classes[class_id]] += sum
+        class_num[classes[class_id]] += 1
+
+    df = pd.DataFrame.from_dict(results, orient='index')
+    df.index.name = 'class'
+    df.columns = ['Coverage (%)']
+    df['Number'] = class_num
+    # select_criteria = [True] * len(df)
+    # df['Select'] = select_criteria
+    st.dataframe(df, use_container_width=True)
+
+    #TODO: Return area instead of percentage
+    # total_percentage = np.sum(new_images != 255) / (new_images[0].size) *100
+    # percentage = [np.sum(x != 255)/(x.size)*100 for x in new_images]
+    # titles = ["Coverage:" + str(np.around(x,2)) + "%" for x in percentage]
+    
+    # st.write("The Total Percentage of Sea Urchins in this image is:", total_percentage, "%")
     st.write("Total Number of Sea Urchins is: ", len(detections))
     st.write("I know this is only ever sea urchins... I'll fix it")
 
@@ -150,7 +193,32 @@ def show_detection_results(boxes, labels):
         st.write("No image is uploaded yet!")
     return selected_boxes
 
-
+def substrate_selection():
+    data_df = pd.DataFrame(
+        {
+            "Substrate":[
+                "Sandy",
+            ],
+        }
+    )
+    res = st.data_editor(
+        data_df,
+        column_config={
+            "Substrate": st.column_config.SelectboxColumn(
+                "Substrate",
+                help = "Manual Substrate Selection",
+                width = "medium",
+                options = [
+                    "Sandy",
+                    "Mixed",
+                    "Rocky",
+                ],
+            )
+        },
+        hide_index = True,
+    )
+    # st.write(res)
+    return res
 
 
 

@@ -4,6 +4,7 @@ import PIL
 
 # External packages
 import streamlit as st
+import supervision as sv
 
 # Local Modules
 import settings
@@ -122,13 +123,16 @@ with tab1:
                 #If Detection is clicked
                 if st.session_state['detect']:
                     #Perform the prediction
-                    boxes, labels = helper.predict(model, uploaded_image, confidence, detect_type)
+                    boxes, detections, classes, labels = helper.predict(model, uploaded_image, confidence, detect_type)
+
                     #Show the detection results              
                     selected_boxes = helper.show_detection_results(boxes, labels)
-
+                    helper.results_math(detections, uploaded_image, classes)
+                    substrate = helper.substrate_selection()
                     #Download Button
                     try:
-                        csv = helper.download_boxes(selected_boxes)
+                        csv = helper.download_results(selected_boxes, substrate, source_img.name)
+                        csv_boxes = helper.download_boxes(selected_boxes, source_img.name)
                     except:
                         st.write("No results yet...")
                     st.sidebar.download_button( label = "Download Results", 
