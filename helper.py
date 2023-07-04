@@ -23,8 +23,8 @@ def init_models():
 
 def init_func():
     init_models()
-    global file_name 
-    file_name = ""
+    # global file_name 
+    # file_name = ""
     st.session_state['initialized'] = True
 
 
@@ -47,96 +47,84 @@ def segment(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
 # Checks that a new image is loaded
 # Changes the session state accordingly
 def change_image(img):
-    global file_name
-    if img.name != file_name:
-        file_name = img.name
+    # global file_name
+    if img.name != st.session_state.image_name:
+        # file_name = img.name
         st.session_state['detect'] = False
-        st.session_state['predict'] = False
+        st.session_state['predicted'] = False
+        st.session_state.image_name = img.name
+        st.write("Change Image, Predicted is false")
+        st.write(st.session_state.image_name)
+        st.write(img.name)
 
 # Use this to repridict IMMEDIATELY, 
 # Detect Does not have to be pressed again
 def repredict():
-    st.session_state['predict'] = False
+    st.session_state['predicted'] = False
+    st.write("Repredict, Predicted is false")
+
 
 # Use this to repredict AFTER pressing detect
 def redetect():
-    st.session_state['predict'] = False
+    st.session_state['predicted'] = False
     st.session_state['detect'] = False
+    st.write("Redetect, Predicted is false")
 
 # Detect Button 
 def click_detect():
     st.session_state['detect'] = True
 
 
-# Creates the CSV file with the result data
-# TODO: This needs a lot of formatting
-def download_results(selected_boxes, substrate, img_name):
-    # Create a DataFrame to hold the selected bounding box data
-    df = pd.DataFrame(selected_boxes, columns=[
-        "Data"
-        # "Image",
-        # "# Sea Urchin",
-        # "% Sea Urchin",
-        # "# Sea Star",
-        # "% Sea Star",
-        # "# Kelp",
-        # "% Kelp"
-        ])
 
-    # Convert the DataFrame to a CSV string
-    csv_string = df.to_csv().encode('utf-8')
-    return csv_string
 
 def download_boxes(selected_boxes, img_name):
     #Detections in YOLO format
-    st.write(selected_boxes)
-    st.write(img_name)
-
-
-
-
+    return 
 
 
 # Predict Function
 # Performs the object detection and image segmentation
-# Also runs the results statistics 
 def predict(_model, _uploaded_image, confidence, detect_type):
     boxes = []
     labels = []
-    if st.session_state['predict'] == False:
-        res = _model.predict(_uploaded_image, conf=confidence)
-        boxes = res[0].boxes
-        masks = res[0].masks
-        detections = sv.Detections.from_yolov8(res[0])
-        classes = res[0].names
-        if(detections is not None):
-            labels = [
-                f"{idx} {classes[class_id]} {confidence:0.2f}"
-                for idx, [_, _, confidence, class_id, _] in enumerate(detections)
-                ]
-        box_annotator = sv.BoxAnnotator(text_scale=3, text_thickness=4, thickness=4, text_color=Color.white())
-        annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=detections, labels=labels)
-        st.image(annotated_image, caption='Detected Image', use_column_width=True)
-        st.session_state['predict'] = True
-        #Segmentation
-        if detect_type == "Objects + Segmentation":
-            with st.spinner('Running Segmenter...'):
-                #Do the Segmentation
-                detections.mask = segment(
-                    image=cv2.cvtColor(np.array(_uploaded_image), cv2.COLOR_BGR2RGB),
-                    xyxy=detections.xyxy
-                )
-                # annotate image with detections
-                box_annotator = sv.BoxAnnotator()
-                mask_annotator = sv.MaskAnnotator()
-                annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
-                # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
-                st.image(annotated_image, caption='Segmented Image', use_column_width=True)
-                # results_math(detections, _uploaded_image, classes)
+    # if st.session_state['predicted'] == False:
+    res = _model.predict(_uploaded_image, conf=confidence)
+    boxes = res[0].boxes
+    masks = res[0].masks
+    detections = sv.Detections.from_yolov8(res[0])
+    classes = res[0].names
+    if(detections is not None):
+        labels = [
+            f"{idx} {classes[class_id]} {confidence:0.2f}"
+            for idx, [_, _, confidence, class_id, _] in enumerate(detections)
+            ]
+    box_annotator = sv.BoxAnnotator(text_scale=3, text_thickness=4, thickness=4, text_color=Color.white())
+    annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=detections, labels=labels)
+    st.image(annotated_image, caption='Detected Image', use_column_width=True)
+    
+    #Segmentation
+    if detect_type == "Objects + Segmentation":
+        with st.spinner('Running Segmenter...'):
+            #Do the Segmentation
+            detections.mask = segment(
+                image=cv2.cvtColor(np.array(_uploaded_image), cv2.COLOR_BGR2RGB),
+                xyxy=detections.xyxy
+            )
+            # annotate image with detections
+            box_annotator = sv.BoxAnnotator()
+            mask_annotator = sv.MaskAnnotator()
+            annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
+            # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
+            st.image(annotated_image, caption='Segmented Image', use_column_width=True)
+            # results_math(detections, _uploaded_image, classes)
+    # st.session_state['predicted'] = True
     return boxes, detections, classes, labels
 
-#TODO: Class differentiation!!!
-def results_math(detections, _image, classes):
+
+def results_math( _image):
+    _, detections, classes, _ = st.session_state.results
+
+    substrate = substrate_selection()
 
     segmentation_mask = detections.mask
     class_id_list = detections.class_id
@@ -145,41 +133,71 @@ def results_math(detections, _image, classes):
     white_background = np.ones_like(_image) * 255
     new_images = white_background * (1 - binary_mask[..., np.newaxis]) + _image * binary_mask[..., np.newaxis]
 
-    results = {}
-    class_num = {}
-    #Convert the masks to coverage percentages, split into classes
-    #TODO: This has to be done AFTER the chosen detections results are picked!
-    for idx, class_id in enumerate(class_id_list):
-        sum = np.sum(new_images[idx] != 255) / new_images[idx].size * 100
+    # Initialize empty lists to store data
+    index_list = []
+    class_id_list = []
+    result_list = []
+    confidence_list = []
+    select_list = []
 
-        if classes[class_id] not in results:
-            results[classes[class_id]] = 0.00
-        if classes[class_id] not in class_num:
-            class_num[classes[class_id]] = 0
+    for idx, [_, _, confidence, class_id, _] in enumerate(detections):
+        result = np.sum(new_images[idx] != 255) / new_images[idx].size * 100
+        select = True
+        # Append values to respective lists
+        index_list.append(idx)
+        class_id_list.append(classes[class_id])
+        result_list.append(result)
+        confidence_list.append(confidence)
+        select_list.append(select)
+    # Create DataFrame
+    data = {
+        'Index': index_list,
+        'class_id': class_id_list,
+        'Coverage (%)': result_list,
+        'Confidence': confidence_list,
+        'Select': select_list
+    }
 
-        results[classes[class_id]] += sum
-        class_num[classes[class_id]] += 1
+    df = pd.DataFrame(data)
 
-    df = pd.DataFrame.from_dict(results, orient='index')
-    df.index.name = 'class'
-    df.columns = ['Coverage (%)']
-    df['Number'] = class_num
-    # select_criteria = [True] * len(df)
-    # df['Select'] = select_criteria
-    st.dataframe(df, use_container_width=True)
+    # Set class_id as the index
+    df.set_index('class_id', inplace=True)
 
-    #TODO: Return area instead of percentage
-    # total_percentage = np.sum(new_images != 255) / (new_images[0].size) *100
-    # percentage = [np.sum(x != 255)/(x.size)*100 for x in new_images]
-    # titles = ["Coverage:" + str(np.around(x,2)) + "%" for x in percentage]
-    
-    # st.write("The Total Percentage of Sea Urchins in this image is:", total_percentage, "%")
-    st.write("Total Number of Sea Urchins is: ", len(detections))
-    st.write("I know this is only ever sea urchins... I'll fix it")
+    edited_df = st.data_editor(df, disabled=["Index", "class_id", "Coverage (%)", "Confidence"])
 
 
+    #Making the dataframe for an excel sheet
+    excel = {}
+    excel['Image'] = st.session_state.image_name
+    for cl in classes:
+        col1 = f"(#) " + classes[cl]
+        col2 = f"(%) " + classes[cl]
+        excel[col1] = 0
+        excel[col2] = 0.00
+    # excel['Substrate'] = substrate
+    # st.write(excel)
+    dfex = pd.DataFrame(excel, index=[st.session_state.image_name])
+    # st.dataframe(dfex)
 
-def show_detection_results(boxes, labels):
+    #Put data into the excel dataframe
+    for index, row in edited_df.iterrows():
+        #Only add data if row is selected
+        if(row['Select'] == True):
+            id = index
+            coverage = row['Coverage (%)']
+            class_num = f"(#) " + id
+            class_per = f"(%) " + id
+            #Increment number of class
+            dfex.loc[st.session_state.image_name, class_num] += 1
+            #Add to total coverage
+            dfex.loc[st.session_state.image_name, class_per] += coverage
+
+
+    st.dataframe(dfex)
+
+    return dfex
+
+def show_detection_results(boxes, labels, detections, classes, _image):
     selected_boxes = []
     try:
         with st.expander("Detection Results"):
@@ -191,6 +209,9 @@ def show_detection_results(boxes, labels):
                     selected_boxes.append(f"{box.xyxy}")
     except Exception as ex:
         st.write("No image is uploaded yet!")
+
+    results_math(detections, _image, classes)
+
     return selected_boxes
 
 def substrate_selection():

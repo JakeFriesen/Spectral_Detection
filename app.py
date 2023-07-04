@@ -10,9 +10,6 @@ import supervision as sv
 import settings
 import helper
 
-
-
-
 #Stages of detection process added to session state
 if 'detect' not in st.session_state:
     st.session_state['detect'] = False
@@ -20,8 +17,10 @@ if 'predicted' not in st.session_state:
     st.session_state['predicted'] = False
 if 'initialized' not in st.session_state:
     st.session_state['initialized'] = False
-
-
+if 'results' not in st.session_state:
+    st.session_state.results = []
+if 'image' not in st.session_state:
+    st.session_state.image_name = ""
 
 # Setting page layout
 st.set_page_config(
@@ -41,7 +40,7 @@ model_type = st.sidebar.radio("Select Model", ["Built-in", "Upload"])
 
 confidence = float(st.sidebar.slider(
     "Select Model Confidence", 25, 100, 40
-    , on_change = helper.repredict()
+    # , on_change = helper.repredict()
     )) / 100
 
 # Selecting The Model to use
@@ -78,7 +77,7 @@ if st.session_state["initialized"] == False:
     with st.spinner('Initializing...'):
         helper.init_func()
 
-
+# st.write(st.session_state)
 source_img = None
 tab1, tab2 = st.tabs(["Detection", "About"])
 
@@ -89,6 +88,8 @@ with tab1:
         source_img = st.sidebar.file_uploader(
             "Choose an image...", type=("jpg", "jpeg", "png", 'bmp', 'webp'))
         if source_img is not None:
+            if st.session_state.image_name != source_img.name:
+                st.session_state.image_name = source_img.name
                 helper.change_image(source_img)
         
         col1, col2 = st.columns(2)
@@ -96,7 +97,7 @@ with tab1:
         with col1:
             try:
                 if source_img is None:
-                    file_name = ""
+                    # file_name = ""
                     default_image_path = str(settings.DEFAULT_IMAGE)
                     default_image = PIL.Image.open(default_image_path)
                     st.image(default_image_path, caption="Default Image",
@@ -119,20 +120,22 @@ with tab1:
             else:
                 #Uploaded image
                 st.sidebar.button('Detect Objects', on_click=helper.click_detect)
-                
+
                 #If Detection is clicked
                 if st.session_state['detect']:
                     #Perform the prediction
-                    boxes, detections, classes, labels = helper.predict(model, uploaded_image, confidence, detect_type)
+                    if st.session_state['predicted'] == False:
+                        boxes, detections, classes, labels = helper.predict(model, uploaded_image, confidence, detect_type)
+                        st.session_state.results = [boxes, detections, classes, labels]
+                        st.session_state['predicted'] = True
 
                     #Show the detection results              
-                    selected_boxes = helper.show_detection_results(boxes, labels)
-                    helper.results_math(detections, uploaded_image, classes)
-                    substrate = helper.substrate_selection()
+                    selected_df = helper.results_math(uploaded_image)
+                    
                     #Download Button
                     try:
-                        csv = helper.download_results(selected_boxes, substrate, source_img.name)
-                        csv_boxes = helper.download_boxes(selected_boxes, source_img.name)
+                        csv = csv_string = selected_df.to_csv().encode('utf-8')
+                        csv_boxes = helper.download_boxes(selected_df, source_img.name)
                     except:
                         st.write("No results yet...")
                     st.sidebar.download_button( label = "Download Results", 
