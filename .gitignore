@@ -1459,3 +1459,4 @@ __pycache__/helper.cpython-310.pyc
 __pycache__/settings.cpython-310.pyc
 weights/kelpv6_jun26.pt
 weights/sam_vit_h_4b8939.pth
+weights/jun26_urchin_seastar_cucumber.pt

@@ -130,12 +130,20 @@ with tab1:
         if st.session_state['detect']:
             #Show the detection results
             with st.spinner("Calculating Stats..."):
-                selected_df = helper.results_math(uploaded_image)
+                # if detect_type == "Objects + Segmentation":
+                selected_df = helper.results_math(uploaded_image, detect_type)
+                # else:
+                #     selected_df = helper.show_detection_results()
                 
             #Download Button
             list_btn = st.button('Add to List')
             if list_btn:
                 helper.add_to_list(selected_df)
+    
+        #Always showing list if something is in it
+        if st.session_state.add_to_list:
+            st.write("Image List:")
+            st.dataframe(st.session_state.list)
             try:
                 st.download_button( label = "Download Results", 
                                 data=st.session_state.list.to_csv().encode('utf-8'), 
@@ -143,10 +151,6 @@ with tab1:
                                 mime='text/csv')
             except:
                 st.write("Add items to the list to download them")
-        #Always showing list if something is in it
-        if st.session_state.add_to_list:
-            st.write("Image List:")
-            st.dataframe(st.session_state.list)
 
                         
 
