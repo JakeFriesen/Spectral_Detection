@@ -47,15 +47,10 @@ def segment(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
 # Checks that a new image is loaded
 # Changes the session state accordingly
 def change_image(img):
-    # global file_name
     if img.name != st.session_state.image_name:
-        # file_name = img.name
         st.session_state['detect'] = False
         st.session_state['predicted'] = False
         st.session_state.image_name = img.name
-        st.write("Change Image, Predicted is false")
-        st.write(st.session_state.image_name)
-        st.write(img.name)
 
 # Use this to repridict IMMEDIATELY, 
 # Detect Does not have to be pressed again
@@ -73,8 +68,7 @@ def redetect():
 # Detect Button 
 def click_detect():
     st.session_state['detect'] = True
-
-
+    
 
 
 def download_boxes(selected_boxes, img_name):
@@ -87,44 +81,53 @@ def download_boxes(selected_boxes, img_name):
 def predict(_model, _uploaded_image, confidence, detect_type):
     boxes = []
     labels = []
-    # if st.session_state['predicted'] == False:
-    res = _model.predict(_uploaded_image, conf=confidence)
-    boxes = res[0].boxes
-    masks = res[0].masks
-    detections = sv.Detections.from_yolov8(res[0])
-    classes = res[0].names
-    if(detections is not None):
-        labels = [
-            f"{idx} {classes[class_id]} {confidence:0.2f}"
-            for idx, [_, _, confidence, class_id, _] in enumerate(detections)
-            ]
-    box_annotator = sv.BoxAnnotator(text_scale=3, text_thickness=4, thickness=4, text_color=Color.white())
-    annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=detections, labels=labels)
-    st.image(annotated_image, caption='Detected Image', use_column_width=True)
-    
-    #Segmentation
-    if detect_type == "Objects + Segmentation":
-        with st.spinner('Running Segmenter...'):
-            #Do the Segmentation
-            detections.mask = segment(
-                image=cv2.cvtColor(np.array(_uploaded_image), cv2.COLOR_BGR2RGB),
-                xyxy=detections.xyxy
-            )
-            # annotate image with detections
+    if st.session_state['predicted'] == False:
+        res = _model.predict(_uploaded_image, conf=confidence)
+        boxes = res[0].boxes
+        masks = res[0].masks
+        detections = sv.Detections.from_yolov8(res[0])
+        classes = res[0].names
+        if(detections is not None):
+            labels = [
+                f"{idx} {classes[class_id]} {confidence:0.2f}"
+                for idx, [_, _, confidence, class_id, _] in enumerate(detections)
+                ]
+        
+        box_annotator = sv.BoxAnnotator(text_scale=3, text_thickness=4, thickness=4, text_color=Color.white())
+        annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=detections, labels=labels)
+        st.image(annotated_image, caption='Detected Image', use_column_width=True)
+        
+        #Segmentation
+        if detect_type == "Objects + Segmentation":
+            with st.spinner('Running Segmenter...'):
+                #Do the Segmentation
+                detections.mask = segment(
+                    image=cv2.cvtColor(np.array(_uploaded_image), cv2.COLOR_BGR2RGB),
+                    xyxy=detections.xyxy
+                )
+                # annotate image with detections
+                box_annotator = sv.BoxAnnotator()
+                mask_annotator = sv.MaskAnnotator()
+                annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
+                # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
+                st.image(annotated_image, caption='Segmented Image', use_column_width=True)
+                # results_math(detections, _uploaded_image, classes)
+        st.session_state['predicted'] = True
+        st.session_state.results = [boxes, detections, classes, labels]
+    else:
+        box_annotator = sv.BoxAnnotator(text_scale=3, text_thickness=4, thickness=4, text_color=Color.white())
+        annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=st.session_state.results[1], labels=st.session_state.results[3])
+        st.image(annotated_image, caption='Detected Image', use_column_width=True)
+        if detect_type == "Objects + Segmentation":
             box_annotator = sv.BoxAnnotator()
             mask_annotator = sv.MaskAnnotator()
-            annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
-            # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
+            annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=st.session_state.results[1])
             st.image(annotated_image, caption='Segmented Image', use_column_width=True)
-            # results_math(detections, _uploaded_image, classes)
-    # st.session_state['predicted'] = True
-    return boxes, detections, classes, labels
+    
 
-
+#Results Calculations
 def results_math( _image):
     _, detections, classes, _ = st.session_state.results
-
-    substrate = substrate_selection()
 
     segmentation_mask = detections.mask
     class_id_list = detections.class_id
@@ -163,8 +166,10 @@ def results_math( _image):
     # Set class_id as the index
     df.set_index('class_id', inplace=True)
 
+    st.write("Image Detection Results")
     edited_df = st.data_editor(df, disabled=["Index", "class_id", "Coverage (%)", "Confidence"])
-
+    #Manual Substrate Selection
+    substrate = substrate_selection()
 
     #Making the dataframe for an excel sheet
     excel = {}
@@ -174,7 +179,7 @@ def results_math( _image):
         col2 = f"(%) " + classes[cl]
         excel[col1] = 0
         excel[col2] = 0.00
-    # excel['Substrate'] = substrate
+    excel['Substrate'] = substrate
     # st.write(excel)
     dfex = pd.DataFrame(excel, index=[st.session_state.image_name])
     # st.dataframe(dfex)
@@ -191,11 +196,22 @@ def results_math( _image):
             dfex.loc[st.session_state.image_name, class_num] += 1
             #Add to total coverage
             dfex.loc[st.session_state.image_name, class_per] += coverage
-
-
-    st.dataframe(dfex)
+    # st.dataframe(dfex)
 
     return dfex
+
+def add_to_list(data):
+    #TODO: Update or overwrite list of same images
+    if st.session_state.list is not None:
+        frames = [st.session_state.list, data]
+        st.session_state.list = pd.concat(frames)
+    else:
+        st.session_state.list = data
+    st.session_state.add_to_list = True
+    # st.dataframe(st.session_state.list)
+
+
+
 
 def show_detection_results(boxes, labels, detections, classes, _image):
     selected_boxes = []
@@ -238,8 +254,7 @@ def substrate_selection():
         },
         hide_index = True,
     )
-    # st.write(res)
-    return res
+    return res.loc[0]["Substrate"]
 
 
 

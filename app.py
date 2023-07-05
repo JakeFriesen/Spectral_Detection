@@ -19,8 +19,12 @@ if 'initialized' not in st.session_state:
     st.session_state['initialized'] = False
 if 'results' not in st.session_state:
     st.session_state.results = []
-if 'image' not in st.session_state:
-    st.session_state.image_name = ""
+if 'image_name' not in st.session_state:
+    st.session_state.image_name = None
+if 'list' not in st.session_state:
+    st.session_state.list = None
+if 'add_to_list' not in st.session_state:
+    st.session_state.add_to_list = False
 
 # Setting page layout
 st.set_page_config(
@@ -77,7 +81,6 @@ if st.session_state["initialized"] == False:
     with st.spinner('Initializing...'):
         helper.init_func()
 
-# st.write(st.session_state)
 source_img = None
 tab1, tab2 = st.tabs(["Detection", "About"])
 
@@ -86,11 +89,9 @@ with tab1:
     # If image is selected
     if source_radio == settings.IMAGE:
         source_img = st.sidebar.file_uploader(
-            "Choose an image...", type=("jpg", "jpeg", "png", 'bmp', 'webp'))
+            "Choose an image...", type=("jpg", "jpeg", "png", 'bmp', 'webp'), key = "src_img")
         if source_img is not None:
-            if st.session_state.image_name != source_img.name:
-                st.session_state.image_name = source_img.name
-                helper.change_image(source_img)
+            helper.change_image(source_img)
         
         col1, col2 = st.columns(2)
 
@@ -121,27 +122,31 @@ with tab1:
                 #Uploaded image
                 st.sidebar.button('Detect Objects', on_click=helper.click_detect)
 
-                #If Detection is clicked
-                if st.session_state['detect']:
-                    #Perform the prediction
-                    if st.session_state['predicted'] == False:
-                        boxes, detections, classes, labels = helper.predict(model, uploaded_image, confidence, detect_type)
-                        st.session_state.results = [boxes, detections, classes, labels]
-                        st.session_state['predicted'] = True
-
-                    #Show the detection results              
-                    selected_df = helper.results_math(uploaded_image)
-                    
-                    #Download Button
-                    try:
-                        csv = csv_string = selected_df.to_csv().encode('utf-8')
-                        csv_boxes = helper.download_boxes(selected_df, source_img.name)
-                    except:
-                        st.write("No results yet...")
-                    st.sidebar.download_button( label = "Download Results", 
-                                        data=csv, 
-                                        file_name="Detection_Results.csv", 
-                                        mime='text/csv')
+            #If Detection is clicked
+            if st.session_state['detect']:
+                #Perform the prediction
+                helper.predict(model, uploaded_image, confidence, detect_type)
+        #If Detection is clicked
+        if st.session_state['detect']:
+            #Show the detection results
+            with st.spinner("Calculating Stats..."):
+                selected_df = helper.results_math(uploaded_image)
+                
+            #Download Button
+            list_btn = st.button('Add to List')
+            if list_btn:
+                helper.add_to_list(selected_df)
+            try:
+                st.download_button( label = "Download Results", 
+                                data=st.session_state.list.to_csv().encode('utf-8'), 
+                                file_name="Detection_Results.csv", 
+                                mime='text/csv')
+            except:
+                st.write("Add items to the list to download them")
+        #Always showing list if something is in it
+        if st.session_state.add_to_list:
+            st.write("Image List:")
+            st.dataframe(st.session_state.list)
 
                         
 
