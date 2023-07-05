@@ -120,7 +120,7 @@ with tab1:
                         use_column_width=True)
             else:
                 #Uploaded image
-                st.sidebar.button('Detect Objects', on_click=helper.click_detect)
+                st.sidebar.button('Detect', on_click=helper.click_detect)
 
             #If Detection is clicked
             if st.session_state['detect']:
@@ -169,4 +169,18 @@ with tab2:
     st.write("Visit the GitHub for this project: https://github.com/JakeFriesen/Spectral_Detection")
 
     st.header("How to Use")
-    st.write("Source: Image will detect species in a single image, video will detect for the whole image")
+    st.write(":blue[**Choose Detection Type:**] Choose to detect species only, or also use segmentation to get coverage results.")
+    st.write(":blue[**Select Model:**] Choose between the built in model, or use your own (supports .pt model files).")
+    st.write(":blue[**Select Model Confidence:**] Choose the confidence threshold cutoff for object detection. Useful for fine tuning detections on particular images.")
+    st.write(":blue[**Select Source:**] Choose to upload an image or video")
+
+    st.header("Image Detection")
+    st.write("After an image is uploaded, the :blue[**Detect**] button will display, and run the detection or segmentation based on the :blue[**Detection Type**] chosen above.")
+    st.write("The detected and segmented images will be displayed, along with the image detection results.")
+    st.header("Results")
+    st.write("A list of results will be displayed, with an index corresponding to the numbered box in the detected image.")
+    st.write("Select which results to keep, manually select the substrate, and press :blue[**Add To List**], which will show the current list of images saved")
+    st.write("When complete, press :blue[**Download Results**] to download the csv file with the resulting data")
+    st.header("Video Detection")
+    #TODO: VIDEO STUFF
+    st.write("Under Construction...")

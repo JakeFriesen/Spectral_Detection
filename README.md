@@ -10,11 +10,11 @@ This needs a write up about the project
     - [x] Manual selection of detections (check how intuitive this is)
     - [ ] Slider for video slicing
     - [ ] Batch detection workflow
-    - [ ] Manual substrate classifier
+    - [x] Manual substrate classifier
 - [ ] Functional UI Changes
     - [ ] Use form for sidebar toggles
     - [x] Add Substrate to table
-    - [ ] Add detection results path (no coverage)
+    - [x] Add detection results path (no coverage)
 - [x] SAM Integration into website (Jake)
 - [ ] Video parsing function
     - [ ] Selectable frame sequence (transects)
