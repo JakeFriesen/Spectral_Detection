@@ -145,6 +145,9 @@ with tab1:
             if list_btn:
                 helper.add_to_list(selected_df)
                 st.session_state.next_img = True
+                #This gets the update to be forced, removing the double detect issue.
+                #It does look a bit weird though, consider removing
+                st.experimental_rerun()
     
         #Always showing list if something is in it
         if st.session_state.add_to_list:
