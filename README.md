@@ -9,7 +9,7 @@ This needs a write up about the project
     - [x] Choose image/video, transect/drop quadrat, confidence
     - [x] Manual selection of detections (check how intuitive this is)
     - [ ] Slider for video slicing
-    - [ ] Batch detection workflow
+    - [x] Batch detection workflow
     - [x] Manual substrate classifier
 - [ ] Functional UI Changes
     - [ ] Use form for sidebar toggles

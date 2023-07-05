@@ -46,11 +46,24 @@ def segment(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
 
 # Checks that a new image is loaded
 # Changes the session state accordingly
-def change_image(img):
+def change_image(img_list):
+    if st.session_state.next_img == True:
+        st.session_state.next_img = False
+        st.session_state['detect'] = False
+        st.session_state['predicted'] = False
+        st.session_state.img_num += 1
+        if(st.session_state.img_num >= len(img_list)):
+            st.write("At the end of image list! Upload more images")
+            st.session_state.img_num = len(img_list)-1
+    if img_list:
+        img = img_list[st.session_state.img_num]
+    else:
+        img = None
     if img.name != st.session_state.image_name:
         st.session_state['detect'] = False
         st.session_state['predicted'] = False
         st.session_state.image_name = img.name
+    
 
 # Use this to repridict IMMEDIATELY, 
 # Detect Does not have to be pressed again
@@ -144,6 +157,9 @@ def results_math( _image, detect_type):
     confidence_list = []
     select_list = []
 
+    #TODO: Get Diameter of detections (All??)
+    # Area = pi*r*r -> r = sqrt(Area/pi)
+    # Area = Area of box * percentage of detection
     for idx, [_, _, confidence, class_id, _] in enumerate(detections):
         if detect_type == "Objects + Segmentation":
             result = np.sum(new_images[idx] != 255) / new_images[idx].size * 100
@@ -215,63 +231,19 @@ def results_math( _image, detect_type):
     return dfex
 
 def add_to_list(data):
-    #TODO: Update or overwrite list of same images
     if st.session_state.list is not None:
+        #Check for duplicates
+        for index, row in st.session_state.list.iterrows():
+            if row['Image'] == data['Image'][0]:
+                st.session_state.list= st.session_state.list.drop(index)
+
         frames = [st.session_state.list, data]
         st.session_state.list = pd.concat(frames)
     else:
         st.session_state.list = data
     st.session_state.add_to_list = True
-    # st.dataframe(st.session_state.list)
 
 
-
-
-# def show_detection_results():
-#     boxes, _, _, labels = st.session_state.results
-
-#     #Making the dataframe for an excel sheet
-#     excel = {}
-#     excel['Image'] = st.session_state.image_name
-#     for cl in classes:
-#         col1 = f"(#) " + classes[cl]
-#         excel[col1] = 0
-#     excel['Substrate'] = substrate
-#     # st.write(excel)
-#     dfex = pd.DataFrame(excel, index=[st.session_state.image_name])
-#     # st.dataframe(dfex)
-
-#     #Put data into the excel dataframe
-#     for index, row in edited_df.iterrows():
-#         #Only add data if row is selected
-#         if(row['Select'] == True):
-#             id = index
-#             coverage = row['Coverage (%)']
-#             class_num = f"(#) " + id
-#             class_per = f"(%) " + id
-#             #Increment number of class
-#             dfex.loc[st.session_state.image_name, class_num] += 1
-#             #Add to total coverage
-#             dfex.loc[st.session_state.image_name, class_per] += coverage
-
-
-
-#     selected_boxes = []
-#     try:
-#         with st.expander("Detection Results"):
-#             for idx, box in enumerate(boxes):
-#                 checkbox_label = f"{labels[idx]}"
-#                 checkbox_state = st.checkbox(checkbox_label, value=True)
-#                 if checkbox_state:
-#                     #TODO: Format this result for csv!
-#                     selected_boxes.append(f"{box.xyxy}")
-#     except Exception as ex:
-#         st.write("No image is uploaded yet!")
-
-
-
-
-#     return selected_boxes
 
 def substrate_selection():
     data_df = pd.DataFrame(

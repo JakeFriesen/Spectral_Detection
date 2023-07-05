@@ -25,6 +25,10 @@ if 'list' not in st.session_state:
     st.session_state.list = None
 if 'add_to_list' not in st.session_state:
     st.session_state.add_to_list = False
+if 'img_num' not in st.session_state:
+    st.session_state.img_num = 0
+if 'next_img' not in st.session_state:
+    st.session_state.next_img = False
 
 # Setting page layout
 st.set_page_config(
@@ -88,11 +92,12 @@ tab1, tab2 = st.tabs(["Detection", "About"])
 with tab1:
     # If image is selected
     if source_radio == settings.IMAGE:
-        source_img = st.sidebar.file_uploader(
-            "Choose an image...", type=("jpg", "jpeg", "png", 'bmp', 'webp'), key = "src_img")
-        if source_img is not None:
-            helper.change_image(source_img)
-        
+        source_img_list = st.sidebar.file_uploader(
+            "Choose an image...", type=("jpg", "jpeg", "png", 'bmp', 'webp'), key = "src_img", accept_multiple_files= True)
+        if source_img_list:
+            helper.change_image(source_img_list)
+            # st.write(st.session_state.img_num)
+            source_img = source_img_list[st.session_state.img_num]
         col1, col2 = st.columns(2)
 
         with col1:
@@ -139,6 +144,7 @@ with tab1:
             list_btn = st.button('Add to List')
             if list_btn:
                 helper.add_to_list(selected_df)
+                st.session_state.next_img = True
     
         #Always showing list if something is in it
         if st.session_state.add_to_list:
@@ -181,6 +187,8 @@ with tab2:
     st.write("A list of results will be displayed, with an index corresponding to the numbered box in the detected image.")
     st.write("Select which results to keep, manually select the substrate, and press :blue[**Add To List**], which will show the current list of images saved")
     st.write("When complete, press :blue[**Download Results**] to download the csv file with the resulting data")
+    st.header("Batch Images")
+    st.write("If multiple files are uploaded, after pressing :blue[**Add To List**], pressing :blue[**Detect**] again will load the next image.")
     st.header("Video Detection")
     #TODO: VIDEO STUFF
     st.write("Under Construction...")
