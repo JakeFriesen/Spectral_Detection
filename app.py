@@ -155,8 +155,11 @@ with tab1:
                         
 
     elif source_radio == settings.VIDEO:
-        st.write("Under Construction...")
-        # helper.play_stored_video(confidence, model)
+        source_vid = st.sidebar.file_uploader(
+            "Upload a Video...", type=("mp4"), key = "src_vid")
+        if source_vid is not None:
+            bytes_data = source_vid.getvalue()
+            helper.play_stored_video(confidence, model, bytes_data)
 
     else:
         st.error("Please select a valid source type!")

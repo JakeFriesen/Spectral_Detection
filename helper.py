@@ -3,7 +3,7 @@ from ultralytics import YOLO
 from segment_anything import sam_model_registry, SamPredictor
 import streamlit as st
 import pandas as pd
-import base64
+import os
 import cv2
 import numpy as np
 import supervision as sv
@@ -362,13 +362,14 @@ def _display_detected_frames(conf, model, st_frame, image, is_display_tracking=N
                    )
 
 
-def play_stored_video(conf, model):
+def play_stored_video(conf, model, source_vid):
     """
     Plays a stored video file. Tracks and detects objects in real-time using the YOLOv8 object detection model.
 
     Parameters:
         conf: Confidence of YOLOv8 model.
         model: An instance of the `YOLOv8` class containing the YOLOv8 model.
+        source_vid: Source video for tracking.
 
     Returns:
         None
@@ -376,20 +377,21 @@ def play_stored_video(conf, model):
     Raises:
         None
     """
-    source_vid = st.sidebar.selectbox(
-        "Choose a video...", settings.VIDEOS_DICT.keys())
 
     is_display_tracker, tracker = display_tracker_options()
 
-    with open(settings.VIDEOS_DICT.get(source_vid), 'rb') as video_file:
+    video_path = 'temp_video.mp4'
+    with open(video_path, 'wb') as video_file:
+        video_file.write(source_vid)
+        
+    with open(video_path, 'rb') as video_file:
         video_bytes = video_file.read()
     if video_bytes:
         st.video(video_bytes)
 
     if st.sidebar.button('Detect Video Objects'):
         try:
-            vid_cap = cv2.VideoCapture(
-                str(settings.VIDEOS_DICT.get(source_vid)))
+            vid_cap = cv2.VideoCapture(str(video_path))
             st_frame = st.empty()
             while (vid_cap.isOpened()):
                 success, image = vid_cap.read()
@@ -403,6 +405,7 @@ def play_stored_video(conf, model):
                                              )
                 else:
                     vid_cap.release()
+                    os.remove(video_path)
                     break
         except Exception as e:
             st.sidebar.error("Error loading video: " + str(e))
