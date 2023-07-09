@@ -243,7 +243,10 @@ def add_to_list(data):
         st.session_state.list = data
     st.session_state.add_to_list = True
 
-
+def clear_image_list():
+    st.session_state.list = None
+    st.session_state.add_to_list = False
+    st.experimental_rerun()
 
 def substrate_selection():
     data_df = pd.DataFrame(

@@ -155,12 +155,14 @@ with tab1:
             st.dataframe(st.session_state.list)
             try:
                 st.download_button( label = "Download Results", 
+                                help = "Download a csv with the saved image results",
                                 data=st.session_state.list.to_csv().encode('utf-8'), 
                                 file_name="Detection_Results.csv", 
                                 mime='text/csv')
             except:
                 st.write("Add items to the list to download them")
-
+            if st.button("Clear Image List", help="Clear the saved image data"):
+                helper.clear_image_list()
                         
 
     elif source_radio == settings.VIDEO:
