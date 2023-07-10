@@ -8,6 +8,7 @@ import streamlit as st
 # Local Modules
 import settings
 import helper
+import testing
 
 #Stages of detection process added to session state
 if 'detect' not in st.session_state:
@@ -85,7 +86,7 @@ if st.session_state["initialized"] == False:
         helper.init_func()
 
 source_img = None
-tab1, tab2 = st.tabs(["Detection", "About"])
+tab1, tab2, tab3 = st.tabs(["Detection", "About", "test"])
 
 #Main Detection Tab
 with tab1:
@@ -144,10 +145,7 @@ with tab1:
         if st.session_state['detect']:
             #Show the detection results
             with st.spinner("Calculating Stats..."):
-                # if detect_type == "Objects + Segmentation":
                 selected_df = helper.results_math(uploaded_image, detect_type)
-                # else:
-                #     selected_df = helper.show_detection_results()
                 
             #Download Button
             list_btn = st.button('Add to List')
@@ -203,6 +201,10 @@ with tab2:
     st.write("When complete, press :blue[**Download Results**] to download the csv file with the resulting data")
     st.header("Batch Images")
     st.write("If multiple files are uploaded, after pressing :blue[**Add To List**], pressing :blue[**Detect**] again will load the next image.")
+    st.write("To clear the saved image list, press :blue[**Clear Image List**], which will remove all saved results from the list.")
     st.header("Video Detection")
     #TODO: VIDEO STUFF
     st.write("Under Construction...")
+
+with tab3:
+    testing.detection_test()

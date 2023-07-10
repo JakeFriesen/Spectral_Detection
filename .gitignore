@@ -1464,3 +1464,4 @@ app.py
 weights/kelp_segmentor_V16_0.pt
 weights/kelp_detector_V16_0.pt
 images/GX010168.jpg
+__pycache__/testing.cpython-310.pyc
