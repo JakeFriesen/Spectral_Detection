@@ -11,6 +11,7 @@
     - [x] Add Substrate to table
     - [x] Add detection results path (no coverage)
     - [ ] Add a button to clear the image list
+    - [ ] Stop stats recalculation after every click
 - [x] SAM Integration into website (Jake)
 - [ ] Video parsing function
     - [ ] Selectable frame sequence (transects)
