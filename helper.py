@@ -115,7 +115,7 @@ def predict(_model, _uploaded_image, confidence, detect_type):
         st.session_state['predicted'] = True
         st.session_state.results = [boxes, detections, classes, labels]
     else:
-        box_annotator = sv.BoxAnnotator(text_scale=3, text_thickness=4, thickness=4, text_color=Color.white())
+        box_annotator = sv.BoxAnnotator(text_scale=1, text_thickness=2, thickness=2, text_color=Color.white())
         annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=st.session_state.results[1], labels=st.session_state.results[3])
         st.image(annotated_image, caption='Detected Image', use_column_width=True)
         if detect_type == "Objects + Segmentation":
@@ -360,16 +360,34 @@ def _display_detected_frames(conf, model, st_frame, image, is_display_tracking=N
                    channels="BGR",
                    use_column_width=True
                    )
+    
+def preview_video_upload(video_name,data):
+    with open(video_name, 'wb') as video_file:
+        video_file.write(data)
+        
+    with open(video_name, 'rb') as video_file:
+        video_bytes = video_file.read()
+    if video_bytes:
+        st.video(video_bytes)
+    return video_name
 
+def preview_finished_capture(video_name):
+    with open(video_name, 'rb') as video_file:
+        video_bytes = video_file.read()
+    if video_bytes:
+        st.video(video_bytes)
+        os.remove(video_name)
 
-def play_stored_video(conf, model, source_vid):
+def capture_uploaded_video(conf, model, fps, source_path, destination_path):
     """
     Plays a stored video file. Tracks and detects objects in real-time using the YOLOv8 object detection model.
 
     Parameters:
         conf: Confidence of YOLOv8 model.
         model: An instance of the `YOLOv8` class containing the YOLOv8 model.
-        source_vid: Source video for tracking.
+        fps: Frame rate to sample the input video at.
+
+        video_path: Path to video for tracking.
 
     Returns:
         None
@@ -377,35 +395,30 @@ def play_stored_video(conf, model, source_vid):
     Raises:
         None
     """
-
-    is_display_tracker, tracker = display_tracker_options()
-
-    video_path = 'temp_video.mp4'
-    with open(video_path, 'wb') as video_file:
-        video_file.write(source_vid)
-        
-    with open(video_path, 'rb') as video_file:
-        video_bytes = video_file.read()
-    if video_bytes:
-        st.video(video_bytes)
+    is_display_tracking, tracker = display_tracker_options()
 
     if st.sidebar.button('Detect Video Objects'):
         try:
-            vid_cap = cv2.VideoCapture(str(video_path))
-            st_frame = st.empty()
+            vid_cap = cv2.VideoCapture(str(source_path))
+            video_out = cv2.VideoWriter(str(destination_path), cv2.VideoWriter_fourcc(*'h264'), fps, (720, int(720*(9/16))))
             while (vid_cap.isOpened()):
-                success, image = vid_cap.read()
+                success, frame = vid_cap.read()
                 if success:
-                    _display_detected_frames(conf,
-                                             model,
-                                             st_frame,
-                                             image,
-                                             is_display_tracker,
-                                             tracker
-                                             )
+                    frame = cv2.resize(frame, (720, int(720*(9/16))))
+
+                    # Display object tracking, if specified
+                    if is_display_tracking:
+                        res = model.track(frame, conf=conf, persist=True, tracker=tracker)
+                    else:
+                        # Predict the objects in the frame using the YOLOv8 model
+                        res = model.predict(frame, conf=conf)
+                        
+                    video_out.write(res[0].plot())
                 else:
                     vid_cap.release()
-                    os.remove(video_path)
+                    video_out.release()
+                    os.remove(source_path)
                     break
         except Exception as e:
             st.sidebar.error("Error loading video: " + str(e))
+    return True
