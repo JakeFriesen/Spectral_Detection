@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 import supervision as sv
 import torch
-from supervision.draw.color import Color, ColorPalette
+from supervision.draw.color import Color
 
 import settings
 
@@ -23,8 +23,6 @@ def init_models():
 
 def init_func():
     init_models()
-    # global file_name 
-    # file_name = ""
     st.session_state['initialized'] = True
 
 
@@ -65,7 +63,7 @@ def change_image(img_list):
         st.session_state.image_name = img.name
     
 
-# Use this to repridict IMMEDIATELY, 
+# Use this to repredict IMMEDIATELY, 
 # Detect Does not have to be pressed again
 def repredict():
     st.session_state['predicted'] = False
@@ -106,7 +104,7 @@ def predict(_model, _uploaded_image, confidence, detect_type):
                 for idx, [_, _, confidence, class_id, _] in enumerate(detections)
                 ]
         
-        box_annotator = sv.BoxAnnotator(text_scale=3, text_thickness=4, thickness=4, text_color=Color.white())
+        box_annotator = sv.BoxAnnotator(text_scale=2, text_thickness=3, thickness=3, text_color=Color.white())
         annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=detections, labels=labels)
         st.image(annotated_image, caption='Detected Image', use_column_width=True)
         
@@ -156,14 +154,23 @@ def results_math( _image, detect_type):
     result_list = []
     confidence_list = []
     select_list = []
+    diameter_list = []
 
-    #TODO: Get Diameter of detections (All??)
-    # Area = pi*r*r -> r = sqrt(Area/pi)
-    # Area = Area of box * percentage of detection
+    #Side length of PVC box in cm
+    #TODO: Get actual number for this
+    side_length_PVC = 50
+
     for idx, [_, _, confidence, class_id, _] in enumerate(detections):
         if detect_type == "Objects + Segmentation":
-            result = np.sum(new_images[idx] != 255) / new_images[idx].size * 100
+            #Get % of non white pixels inside box (assumed box height is height of image)
+            percentage_of_box = np.sum(new_images[idx] != 255) / (new_images[idx].shape[0]*new_images[idx].shape[0]) * 100
+            #Area of mask is area of PVC * percentage_of_box / 100
+            result = side_length_PVC * side_length_PVC * percentage_of_box / 100
+            #Calculate diameter
+            diameter = 2 * np.sqrt(result / np.pi)
+
             result_list.append(result)
+            diameter_list.append(diameter)
         select = True
         # Append values to respective lists
         index_list.append(idx)
@@ -175,7 +182,8 @@ def results_math( _image, detect_type):
         data = {
             'Index': index_list,
             'class_id': class_id_list,
-            'Coverage (%)': result_list,
+            'Area (cm^2)': result_list,
+            'Diameter (cm)': diameter_list,
             'Confidence': confidence_list,
             'Select': select_list
         }
@@ -194,7 +202,7 @@ def results_math( _image, detect_type):
 
     st.write("Image Detection Results")
     if detect_type == "Objects + Segmentation":
-        edited_df = st.data_editor(df, disabled=["Index", "class_id", "Coverage (%)", "Confidence"])
+        edited_df = st.data_editor(df, disabled=["Index", "class_id", "Area (cm^2)", "Diameter (cm)", "Confidence"])
     else:
         edited_df = st.data_editor(df, disabled=["Index", "class_id", "Confidence"])
     
@@ -208,8 +216,10 @@ def results_math( _image, detect_type):
         col1 = f"(#) " + classes[cl]
         excel[col1] = 0
         if detect_type == "Objects + Segmentation":
-            col2 = f"(%) " + classes[cl]
+            col2 = f"Total " + classes[cl] + f" Area (cm^2) " 
+            col3 = f"Average " + classes[cl] + f" Diameter (cm)"
             excel[col2] = 0.00
+            excel[col3] = 0.00
     
     excel['Substrate'] = substrate
     dfex = pd.DataFrame(excel, index=[st.session_state.image_name])
@@ -223,11 +233,21 @@ def results_math( _image, detect_type):
             #Increment number of class
             dfex.loc[st.session_state.image_name, class_num] += 1
             if detect_type == "Objects + Segmentation":
-                coverage = row['Coverage (%)']
-                class_per = f"(%) " + id
+                coverage = row['Area (cm^2)']
+                class_per = f"Total " + id + f" Area (cm^2) " 
                 #Add to total coverage
                 dfex.loc[st.session_state.image_name, class_per] += coverage
 
+                #Get Average diameter - Take previous average, and use:
+                #  avg_new = ((n-1)*avg_old + d_new)/n
+                class_diameter = f"Average " + id + f" Diameter (cm)"
+                d_new = row['Diameter (cm)']
+                avg_old = dfex.loc[st.session_state.image_name, class_diameter]
+                n = dfex.loc[st.session_state.image_name, class_num]
+                avg_new = ((n-1)*avg_old + d_new)/n
+                dfex.loc[st.session_state.image_name, class_diameter] = avg_new
+
+    #Return Excel Dataframe
     return dfex
 
 def add_to_list(data):
@@ -293,91 +313,3 @@ def load_model(model_path):
     model = YOLO(model_path)
     return model
 
-
-def display_tracker_options():
-    display_tracker = st.radio("Display Tracker", ('Yes', 'No'))
-    is_display_tracker = True if display_tracker == 'Yes' else False
-    if is_display_tracker:
-        tracker_type = st.radio("Tracker", ("bytetrack.yaml", "botsort.yaml"))
-        return is_display_tracker, tracker_type
-    return is_display_tracker, None
-
-
-def _display_detected_frames(conf, model, st_frame, image, is_display_tracking=None, tracker=None):
-    """
-    Display the detected objects on a video frame using the YOLOv8 model.
-
-    Args:
-    - conf (float): Confidence threshold for object detection.
-    - model (YoloV8): A YOLOv8 object detection model.
-    - st_frame (Streamlit object): A Streamlit object to display the detected video.
-    - image (numpy array): A numpy array representing the video frame.
-    - is_display_tracking (bool): A flag indicating whether to display object tracking (default=None).
-
-    Returns:
-    None
-    """
-
-    # Resize the image to a standard size
-    image = cv2.resize(image, (720, int(720*(9/16))))
-
-    # Display object tracking, if specified
-    if is_display_tracking:
-        res = model.track(image, conf=conf, persist=True, tracker=tracker)
-    else:
-        # Predict the objects in the image using the YOLOv8 model
-        res = model.predict(image, conf=conf)
-
-    # # Plot the detected objects on the video frame
-    res_plotted = res[0].plot()
-    st_frame.image(res_plotted,
-                   caption='Detected Video',
-                   channels="BGR",
-                   use_column_width=True
-                   )
-
-
-def play_stored_video(conf, model):
-    """
-    Plays a stored video file. Tracks and detects objects in real-time using the YOLOv8 object detection model.
-
-    Parameters:
-        conf: Confidence of YOLOv8 model.
-        model: An instance of the `YOLOv8` class containing the YOLOv8 model.
-
-    Returns:
-        None
-
-    Raises:
-        None
-    """
-    source_vid = st.sidebar.selectbox(
-        "Choose a video...", settings.VIDEOS_DICT.keys())
-
-    is_display_tracker, tracker = display_tracker_options()
-
-    with open(settings.VIDEOS_DICT.get(source_vid), 'rb') as video_file:
-        video_bytes = video_file.read()
-    if video_bytes:
-        st.video(video_bytes)
-
-    if st.sidebar.button('Detect Video Objects'):
-        try:
-            vid_cap = cv2.VideoCapture(
-                str(settings.VIDEOS_DICT.get(source_vid)))
-            st_frame = st.empty()
-            while (vid_cap.isOpened()):
-                success, image = vid_cap.read()
-                if success:
-                    _display_detected_frames(conf,
-                                             model,
-                                             st_frame,
-                                             image,
-                                             is_display_tracker,
-                                             tracker
-                                             )
-                else:
-                    vid_cap.release()
-                    break
-        except Exception as e:
-            st.sidebar.error("Error loading video: " + str(e))

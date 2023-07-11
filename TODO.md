@@ -10,7 +10,7 @@
     - [ ] Use form for sidebar toggles
     - [x] Add Substrate to table
     - [x] Add detection results path (no coverage)
-    - [ ] Add a button to clear the image list
+    - [x] Add a button to clear the image list
 - [x] SAM Integration into website (Jake)
 - [ ] Video parsing function
     - [ ] Selectable frame sequence (transects)
@@ -31,3 +31,28 @@
     - [x] How to use in the app
     - [ ] Add it to the GitHub: https://github.com/JakeFriesen/Spectral_Detection
     - [ ] Collect all data, and give it to Navneet after project is over
+
+
+Week of July 10th:
+- [ ] Get Area results calculated (Estimated numbers for now)
+    - [x] Area covered by each species (cm^2)
+    - [x] Diameter of everything (no discrimination for now)
+- [ ] Manual Detection Working
+    - [ ] Get the detection bounding boxes to show in the live editor
+    - [ ] Get the list of resulting bounding boxes into a useable format at the end (for segmentation)
+    - [ ] Remove selection in the results list
+- [ ] Get YOLO segmentation masks working
+    - [ ] Temporarily remove SAM segmentation
+    - [ ] Use mask results in the same way as SAM
+    - [ ] Check if model can output segmentation? Or up to user?
+- [ ] Saving Result Images
+    - [ ] Add to List should also save the detection/segmentation image (with updated selections)
+    - [ ] Extra button to download the images
+- [ ] Installation Documentation
+    - [ ] Remove SAM model from GitHub, add description about where to add model (unless unused at this point)
+    - [ ] Talk to Sam about other issues he found when installing it (pip version?)
+    - [ ] Remove unused requirements
+- [ ] Final Report
+    - [ ] Get a rough draft started with bullet points in all sections
+- [ ] Website (Sam)
+- [ ] Poster (Paul)

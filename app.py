@@ -4,7 +4,6 @@ import PIL
 
 # External packages
 import streamlit as st
-import supervision as sv
 
 # Local Modules
 import settings
@@ -93,8 +92,18 @@ with tab1:
     # If image is selected
     if source_radio == settings.IMAGE:
         source_img_list = st.sidebar.file_uploader(
-            "Choose an image...", type=("jpg", "jpeg", "png", 'bmp', 'webp'), key = "src_img", accept_multiple_files= True)
+            "Choose an image...", 
+            type=("jpg", "jpeg", "png", 'bmp', 'webp'), 
+            key = "src_img", 
+            accept_multiple_files= True)
         if source_img_list:
+            try:
+                for img in source_img_list:
+                    img_path = Path(settings.IMAGES_DIR, img.name)
+                    with open(img_path, 'wb') as file:
+                        file.write(img.getbuffer())
+            except:
+                st.sidebar.write("There is an issue with writing image files")
             helper.change_image(source_img_list)
             # st.write(st.session_state.img_num)
             source_img = source_img_list[st.session_state.img_num]
