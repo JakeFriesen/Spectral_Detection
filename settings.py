@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+import torch
 
 # Get the absolute path of the current file
 file_path = Path(__file__).resolve()
@@ -14,6 +15,9 @@ if root_path not in sys.path:
 # Get the relative path of the root directory with respect to the current working directory
 ROOT = root_path.relative_to(Path.cwd())
 
+# DEvice
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 # Sources
 IMAGE = 'Image'
 VIDEO = 'Video'
@@ -27,5 +31,5 @@ DEFAULT_DETECT_IMAGE = IMAGES_DIR / '143_detected.jpg'
 
 # ML Model config
 MODEL_DIR = ROOT / 'weights'
-DETECTION_MODEL = MODEL_DIR / 'urchin_star-jun_16.pt'
-SEGMENTATION_MODEL = MODEL_DIR / 'urchin_star-jun_16.pt'
+DETECTION_MODEL = MODEL_DIR / 'urchin_detector_V9_0.pt'
+SEGMENTATION_MODEL = MODEL_DIR / 'sam_vit_b_01ec64.pth'

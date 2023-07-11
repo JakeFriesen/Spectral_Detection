@@ -7,7 +7,6 @@ import os
 import cv2
 import numpy as np
 import supervision as sv
-import torch
 from supervision.draw.color import Color, ColorPalette
 
 import settings
@@ -16,8 +15,7 @@ import settings
 def init_models():
     SAM_ENCODER_VERSION = "vit_b"
     SAM_CHECKPOINT_PATH = "weights/sam_vit_b_01ec64.pth"
-    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    sam = sam_model_registry[SAM_ENCODER_VERSION](checkpoint=SAM_CHECKPOINT_PATH).to(device=DEVICE)
+    sam = sam_model_registry[SAM_ENCODER_VERSION](checkpoint=SAM_CHECKPOINT_PATH).to(device=settings.DEVICE)
     global sam_predictor 
     sam_predictor = SamPredictor(sam)
 
@@ -372,11 +370,12 @@ def preview_video_upload(video_name,data):
     return video_name
 
 def preview_finished_capture(video_name):
-    with open(video_name, 'rb') as video_file:
-        video_bytes = video_file.read()
-    if video_bytes:
-        st.video(video_bytes)
-        os.remove(video_name)
+    if os.path.exists(video_name):
+        with open(video_name, 'rb') as video_file:
+            video_bytes = video_file.read()
+        if video_bytes:
+            st.video(video_bytes)
+            os.remove(video_name)
 
 def capture_uploaded_video(conf, model, fps, source_path, destination_path):
     """
@@ -386,8 +385,8 @@ def capture_uploaded_video(conf, model, fps, source_path, destination_path):
         conf: Confidence of YOLOv8 model.
         model: An instance of the `YOLOv8` class containing the YOLOv8 model.
         fps: Frame rate to sample the input video at.
-
-        video_path: Path to video for tracking.
+        source_path: Path/input.[MP4,MPEG]
+        destinantion_path: Path/output.[MP4,MPEG]
 
     Returns:
         None
@@ -395,30 +394,102 @@ def capture_uploaded_video(conf, model, fps, source_path, destination_path):
     Raises:
         None
     """
-    is_display_tracking, tracker = display_tracker_options()
+    _, tracker = display_tracker_options()
 
     if st.sidebar.button('Detect Video Objects'):
         try:
             vid_cap = cv2.VideoCapture(str(source_path))
-            video_out = cv2.VideoWriter(str(destination_path), cv2.VideoWriter_fourcc(*'h264'), fps, (720, int(720*(9/16))))
+            video_out = cv2.VideoWriter(str(destination_path), cv2.VideoWriter_fourcc(*'h264'), fps, (960, int(960*(9/16))))
+            Urchins = [0,0]
+            frame_count = 0
             while (vid_cap.isOpened()):
                 success, frame = vid_cap.read()
+                frame_count = frame_count + 1
                 if success:
-                    frame = cv2.resize(frame, (720, int(720*(9/16))))
+                    frame = cv2.resize(frame, (960, int(960*(9/16))))
+                    print(settings.DEVICE)
+                    results = model.track(frame, conf=conf, iou=0.2, persist=True, tracker=tracker, device=settings.DEVICE)[0]
 
-                    # Display object tracking, if specified
-                    if is_display_tracking:
-                        res = model.track(frame, conf=conf, persist=True, tracker=tracker)
-                    else:
-                        # Predict the objects in the frame using the YOLOv8 model
-                        res = model.predict(frame, conf=conf)
-                        
-                    video_out.write(res[0].plot())
+                    #boxes = res[0].boxes
+                    #detections = sv.Detections.from_yolov8(res[0])
+                    #classes = res[0].names
+ 
+                    #if res[0].boxes.id is not None:
+                    #    ids = res[0].boxes.id.cpu().numpy().astype(int)
+                    #    clss = res[0].boxes.cls.cpu().numpy().astype(int)
+ 
+                    #    for box_num  in range(len(boxes)):
+                    #        if clss[box_num] == 1:
+                    #            if int(ids[box_num])>Urchins[1]:
+                    #                if frame_count%10==0:
+                    #                    Urchins[0] = Urchins[0] + 1
+                    #                    Urchins[1] = ids[box_num]
+                    #        box_num = box_num + 1
+ 
+                    #    labels = [
+                    #        f"{ids[idx]} {classes[class_id]} {confidence:0.2f}"
+                    #        for idx, [_, _, confidence, class_id, _] in enumerate(detections)
+                    #        ]
+                    #        
+                    #    box_annotator = sv.BoxAnnotator(text_scale=0.5, text_thickness=1, thickness=2, text_color=Color.white())
+                    #    frame = box_annotator.annotate(scene=np.array(frame), detections=detections, labels=labels)
+                    #cv2.putText(
+                    #    frame,
+                    #    f"Urchins: {Urchins[0]}",
+                    #    (20,70),
+                    #    cv2.FONT_HERSHEY_SIMPLEX,
+                    #    1,
+                    #    (0, 255, 255),
+                    #    2,
+                    #)
+                    boxes = results.boxes.xyxy.cpu().numpy().astype(int)
+                    if results.boxes.id is not None:
+                        num = len(results.boxes.id)
+                        ids = results.boxes.id.cpu().numpy().astype(int)
+                        clss = results.boxes.cls.cpu().numpy().astype(int)
+                        confs = results.boxes.conf.cpu().numpy().astype(float)
+
+
+                        for box_num  in range(len(boxes)):
+                            color =  (0, 255, 0)
+                            if clss[box_num] == 1:
+                                if ids[box_num]>Urchins[1]:
+                                    if frame_count%10==0:
+                                        Urchins[0]=  Urchins[0] +1
+                                        Urchins[1] = ids[box_num]
+                                        color =  (255, 0, 255)
+                                    else:
+                                        color =  (163, 255, 163) 
+
+                            cv2.rectangle(frame, (boxes[box_num][0], boxes[box_num][1]), (boxes[box_num][2], boxes[box_num][3]), color, 2)
+                            cv2.putText(
+                                frame,
+                                f" Id:{ids[box_num]} Class:{clss[box_num]}; Conf:{round(confs[box_num],2)} ",
+                                (boxes[box_num][0], boxes[box_num][1]),
+                                cv2.FONT_HERSHEY_SIMPLEX,
+                                0.5,
+                                color,
+                                2,
+                            )
+                            box_num =box_num+1
+
+                    cv2.putText(
+                        frame,
+                        f"Urchins: {Urchins[0]}",
+                        (20,70),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        1,
+                        (0, 255, 255),
+                        2,
+                    )    
+                    video_out.write(frame)
                 else:
                     vid_cap.release()
                     video_out.release()
                     os.remove(source_path)
                     break
         except Exception as e:
+            import traceback
             st.sidebar.error("Error loading video: " + str(e))
+            traceback.print_exc()
     return True

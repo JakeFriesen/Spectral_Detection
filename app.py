@@ -4,7 +4,6 @@ import PIL
 
 # External packages
 import streamlit as st
-import supervision as sv
 
 # Local Modules
 import settings
@@ -157,13 +156,13 @@ with tab1:
     elif source_radio == settings.VIDEO:
         source_vid = st.sidebar.file_uploader(
             "Upload a Video...", type=("mp4"), key = "src_vid")
-        interval = st.sidebar.slider("Select Capture Interval", 1, 10, 3)
+        interval = st.sidebar.slider("Select Capture Rate:", 0.25, 4.00, 1.00, 0.25)
         if source_vid is not None:
             video_path = 'temp_video.mp4'
             des_path = 'test.mp4'
             bytes_data = source_vid.getvalue()
             video_path = helper.preview_video_upload(video_path, bytes_data)
-            Done = helper.capture_uploaded_video(confidence, model, interval*2, video_path, des_path)
+            Done = helper.capture_uploaded_video(confidence, model, interval*25, video_path, des_path)
             if (True == Done):
                 helper.preview_finished_capture(des_path)
 
