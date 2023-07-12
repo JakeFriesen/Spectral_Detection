@@ -57,14 +57,12 @@ def change_image(img_list):
 # Detect Does not have to be pressed again
 def repredict():
     st.session_state['predicted'] = False
-    st.write("Repredict, Predicted is false")
 
 
 # Use this to repredict AFTER pressing detect
 def redetect():
     st.session_state['predicted'] = False
     st.session_state['detect'] = False
-    st.write("Redetect, Predicted is false")
 
 # Detect Button 
 def click_detect():

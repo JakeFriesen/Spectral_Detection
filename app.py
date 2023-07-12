@@ -39,6 +39,11 @@ st.set_page_config(
 
 # Main page heading
 st.title("🪸 ECE 499 Marine Species Detection")
+
+st.sidebar.header("Image/Video Config")
+source_radio = st.sidebar.radio(
+    "Select Source", settings.SOURCES_LIST, help="Choose if a single image or video will be used for detection")
+
 # Sidebar
 st.sidebar.header("Detection Configuration")
 # Model Options
@@ -46,8 +51,8 @@ detect_type = st.sidebar.radio("Choose Detection Type", ["Objects Only", "Object
 model_type = st.sidebar.radio("Select Model", ["Built-in", "Upload"])
 
 confidence = float(st.sidebar.slider(
-    "Select Model Confidence", 25, 100, 40
-    # , on_change = helper.repredict()
+    "Select Model Confidence", 25, 100, 40,
+    on_change = helper.repredict(),
     )) / 100
 
 # Selecting The Model to use
@@ -73,10 +78,6 @@ elif model_type == 'Upload':
         st.sidebar.write("No Model Uploaded Yet...")
         # st.error(ex)
 
-
-st.sidebar.header("Image/Video Config")
-source_radio = st.sidebar.radio(
-    "Select Source", settings.SOURCES_LIST, help="Choose if a single image or video will be used for detection")
 
 # Initializing Functions
 # Put here so that the sidebars and title show up while it loads
@@ -113,7 +114,6 @@ with tab1:
         with col1:
             try:
                 if source_img is None:
-                    # file_name = ""
                     default_image_path = str(settings.DEFAULT_IMAGE)
                     default_image = PIL.Image.open(default_image_path)
                     st.image(default_image_path, caption="Default Image",
@@ -137,22 +137,29 @@ with tab1:
                 #Uploaded image
                 st.sidebar.button('Detect', on_click=helper.click_detect)
 
-            #If Detection is clicked
-            if st.session_state['detect']:
-                #Perform the prediction
-                helper.predict(model, uploaded_image, confidence, detect_type)
+                #If Detection is clicked
+                if st.session_state['detect']:
+                    #Perform the prediction
+                    try:
+                        helper.predict(model, uploaded_image, confidence, detect_type)
+                    except:
+                        st.write("Upload an image or select a model to run detection")
         #If Detection is clicked
         if st.session_state['detect']:
             #Show the detection results
             with st.spinner("Calculating Stats..."):
                 # if detect_type == "Objects + Segmentation":
-                selected_df = helper.results_math(uploaded_image, detect_type)
+                selected_df = None
+                try:
+                    selected_df = helper.results_math(uploaded_image, detect_type)
+                except:
+                    st.write("Upload an image first")
                 # else:
                 #     selected_df = helper.show_detection_results()
                 
             #Download Button
             list_btn = st.button('Add to List')
-            if list_btn:
+            if list_btn and (selected_df is not None):
                 helper.add_to_list(selected_df)
                 st.session_state.next_img = True
                 #This gets the update to be forced, removing the double detect issue.
@@ -177,6 +184,7 @@ with tab1:
 
     elif source_radio == settings.VIDEO:
         st.write("Under Construction...")
+        helper.redetect()
         # helper.play_stored_video(confidence, model)
 
     else:

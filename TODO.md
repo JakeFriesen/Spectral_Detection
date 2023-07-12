@@ -42,8 +42,8 @@ Week of July 10th:
     - [ ] Get the list of resulting bounding boxes into a useable format at the end (for segmentation)
     - [ ] Remove selection in the results list
 - [ ] Get YOLO segmentation masks working
-    - [ ] Temporarily remove SAM segmentation
-    - [ ] Use mask results in the same way as SAM
+    - [x] Temporarily remove SAM segmentation
+    - [x] Use mask results in the same way as SAM
     - [ ] Check if model can output segmentation? Or up to user?
 - [ ] Saving Result Images
     - [ ] Add to List should also save the detection/segmentation image (with updated selections)
