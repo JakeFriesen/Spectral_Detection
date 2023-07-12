@@ -1,28 +1,18 @@
 import math
 from ultralytics import YOLO
-from segment_anything import sam_model_registry, SamPredictor
 import streamlit as st
 import pandas as pd
 import base64
 import cv2
 import numpy as np
 import supervision as sv
-import torch
 from supervision.draw.color import Color
 
 import settings
 
-@st.cache_data
-def init_models():
-    SAM_ENCODER_VERSION = "vit_b"
-    SAM_CHECKPOINT_PATH = "weights/sam_vit_b_01ec64.pth"
-    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    sam = sam_model_registry[SAM_ENCODER_VERSION](checkpoint=SAM_CHECKPOINT_PATH).to(device=DEVICE)
-    global sam_predictor 
-    sam_predictor = SamPredictor(sam)
 
 def init_func():
-    init_models()
+    # init_models()
     st.session_state['initialized'] = True
 
 
@@ -112,10 +102,10 @@ def predict(_model, _uploaded_image, confidence, detect_type):
         if detect_type == "Objects + Segmentation":
             with st.spinner('Running Segmenter...'):
                 #Do the Segmentation
-                detections.mask = segment(
-                    image=cv2.cvtColor(np.array(_uploaded_image), cv2.COLOR_BGR2RGB),
-                    xyxy=detections.xyxy
-                )
+                # detections.mask = segment(
+                #     image=cv2.cvtColor(np.array(_uploaded_image), cv2.COLOR_BGR2RGB),
+                #     xyxy=detections.xyxy
+                # )
                 # annotate image with detections
                 box_annotator = sv.BoxAnnotator()
                 mask_annotator = sv.MaskAnnotator()

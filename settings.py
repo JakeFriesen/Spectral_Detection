@@ -27,5 +27,6 @@ DEFAULT_DETECT_IMAGE = IMAGES_DIR / '143_detected.jpg'
 
 # ML Model config
 MODEL_DIR = ROOT / 'weights'
-DETECTION_MODEL = MODEL_DIR / 'urchin_star-jun_16.pt'
-SEGMENTATION_MODEL = MODEL_DIR / 'urchin_star-jun_16.pt'
+# DETECTION_MODEL = MODEL_DIR / 'urchin_star-jun_16.pt'
+DETECTION_MODEL = MODEL_DIR / 'kelp_segmentor_V16_0.pt'
+SEGMENTATION_MODEL = MODEL_DIR / 'kelp_segmentor_V16_0.pt'

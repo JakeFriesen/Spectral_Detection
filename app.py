@@ -80,6 +80,7 @@ source_radio = st.sidebar.radio(
 
 # Initializing Functions
 # Put here so that the sidebars and title show up while it loads
+#TODO: Deprecated, Remove 
 if st.session_state["initialized"] == False:
     with st.spinner('Initializing...'):
         helper.init_func()
