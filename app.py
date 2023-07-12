@@ -8,7 +8,6 @@ import streamlit as st
 # Local Modules
 import settings
 import helper
-import testing
 
 #Stages of detection process added to session state
 if 'detect' not in st.session_state:
@@ -29,6 +28,8 @@ if 'img_num' not in st.session_state:
     st.session_state.img_num = 0
 if 'next_img' not in st.session_state:
     st.session_state.next_img = False
+if 'segmented' not in st.session_state:
+    st.session_state.segmented = False
 
 # Setting page layout
 st.set_page_config(
@@ -86,7 +87,7 @@ if st.session_state["initialized"] == False:
         helper.init_func()
 
 source_img = None
-tab1, tab2, tab3 = st.tabs(["Detection", "About", "test"])
+tab1, tab2 = st.tabs(["Detection", "About"])
 
 #Main Detection Tab
 with tab1:
@@ -137,24 +138,24 @@ with tab1:
                 #Uploaded image
                 st.sidebar.button('Detect', on_click=helper.click_detect)
 
-            #If Detection is clicked
-            if st.session_state['detect']:
-                #Perform the prediction
-                helper.predict(model, uploaded_image, confidence, detect_type)
-        #If Detection is clicked
-        if st.session_state['detect']:
-            #Show the detection results
-            with st.spinner("Calculating Stats..."):
-                selected_df = helper.results_math(uploaded_image, detect_type)
-                
-            #Download Button
-            list_btn = st.button('Add to List')
-            if list_btn:
-                helper.add_to_list(selected_df)
-                st.session_state.next_img = True
-                #This gets the update to be forced, removing the double detect issue.
-                #It does look a bit weird though, consider removing
-                st.experimental_rerun()
+                #If Detection is clicked
+                if st.session_state['detect']:
+                    #Perform the prediction
+                    helper.predict(model, uploaded_image, confidence, detect_type)
+                #If Detection is clicked
+                if st.session_state['detect']:
+                    #Show the detection results
+                    with st.spinner("Calculating Stats..."):
+                        selected_df = helper.results_math(uploaded_image, detect_type)
+            
+                    #Download Button
+                    list_btn = st.button('Add to List')
+                    if list_btn:
+                        helper.add_to_list(selected_df)
+                        st.session_state.next_img = True
+                        #This gets the update to be forced, removing the double detect issue.
+                        #It does look a bit weird though, consider removing
+                        st.experimental_rerun()
     
         #Always showing list if something is in it
         if st.session_state.add_to_list:
@@ -205,6 +206,3 @@ with tab2:
     st.header("Video Detection")
     #TODO: VIDEO STUFF
     st.write("Under Construction...")
-
-with tab3:
-    testing.detection_test()

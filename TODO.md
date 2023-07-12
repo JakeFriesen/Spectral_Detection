@@ -38,7 +38,7 @@ Week of July 10th:
     - [x] Area covered by each species (cm^2)
     - [x] Diameter of everything (no discrimination for now)
 - [ ] Manual Detection Working
-    - [ ] Get the detection bounding boxes to show in the live editor
+    - [x] Get the detection bounding boxes to show in the live editor
     - [ ] Get the list of resulting bounding boxes into a useable format at the end (for segmentation)
     - [ ] Remove selection in the results list
 - [ ] Get YOLO segmentation masks working
