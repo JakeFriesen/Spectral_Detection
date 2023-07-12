@@ -6,8 +6,10 @@ from pathlib import Path
 
 
 def detection_test():
-    label_list = ['sea star', 'sea urchin', 'sea cucumber', 'kelp']
-    image_path_list = glob('images/*.jpg')
+    #Grab the list of classes for this detection
+    #Limited to the classes in the current model, can't add more
+    #TODO: This could be a hardcoded, or user updateable cached list
+    label_list = list(st.session_state.results[2].values())
 
     bboxes = []
     labels = []
@@ -22,8 +24,6 @@ def detection_test():
         result_dict[st.session_state.image_name] = {'bboxes': bboxes,'labels':labels}
         st.session_state['result_dict'] = result_dict.copy()
 
-    # st.write(st.session_state.results[0].xywh.numpy())
-    # num_page = st.slider('page', 0, len(image_path_list)-1, 0, key='slider')
     target_image_path = Path(settings.IMAGES_DIR , st.session_state.image_name)
     new_labels = detection(image_path=target_image_path, 
                         bboxes=st.session_state['result_dict'][st.session_state.image_name]['bboxes'], 

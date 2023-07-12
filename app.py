@@ -9,7 +9,6 @@ import streamlit as st
 # Local Modules
 import settings
 import helper
-import testing
 
 #Stages of detection process added to session state
 if 'detect' not in st.session_state:
@@ -32,6 +31,8 @@ if 'img_num' not in st.session_state:
     st.session_state.img_num = 0
 if 'next_img' not in st.session_state:
     st.session_state.next_img = False
+if 'segmented' not in st.session_state:
+    st.session_state.segmented = False
 
 # Setting page layout
 st.set_page_config(
@@ -94,7 +95,7 @@ if st.session_state["initialized"] == False:
         helper.init_func()
 
 source_img = None
-tab1, tab2, tab3 = st.tabs(["Detection", "About", "test"])
+tab1, tab2 = st.tabs(["Detection", "About"])
 
 #Main Detection Tab
 with tab1:
@@ -227,6 +228,3 @@ with tab2:
     st.header("Video Detection")
     #TODO: VIDEO STUFF
     st.write("Under Construction...")
-
-with tab3:
-    testing.detection_test()
