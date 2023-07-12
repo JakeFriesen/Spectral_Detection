@@ -7,13 +7,31 @@ import cv2
 import numpy as np
 import supervision as sv
 from supervision.draw.color import Color
+import os, shutil
+import zipfile
+from pathlib import Path
 
 import settings
 
 
+def clear_folder(folder):
+    for filename in os.listdir(folder):
+        file_path = os.path.join(folder, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (file_path, e))
+
 def init_func():
     # init_models()
     st.session_state['initialized'] = True
+    #remove detected images
+    clear_folder(settings.RESULTS_DIR)
+    clear_folder(settings.IMAGES_DIR)
+    
 
 
 # Segment Anything Model
@@ -107,12 +125,12 @@ def predict(_model, _uploaded_image, confidence, detect_type):
                 # annotate image with detections
                 box_annotator = sv.BoxAnnotator()
                 mask_annotator = sv.MaskAnnotator()
-                annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
+                seg_annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
                 # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
-                st.image(annotated_image, caption='Segmented Image', use_column_width=True)
+                st.image(seg_annotated_image, caption='Segmented Image', use_column_width=True)
                 # results_math(detections, _uploaded_image, classes)
         st.session_state['predicted'] = True
-        st.session_state.results = [boxes, detections, classes, labels]
+        st.session_state.results = [boxes, detections, classes, labels, annotated_image]
     else:
         box_annotator = sv.BoxAnnotator(text_scale=3, text_thickness=4, thickness=4, text_color=Color.white())
         annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=st.session_state.results[1], labels=st.session_state.results[3])
@@ -126,7 +144,7 @@ def predict(_model, _uploaded_image, confidence, detect_type):
 
 #Results Calculations
 def results_math( _image, detect_type):
-    _, detections, classes ,_ = st.session_state.results
+    _, detections, classes ,_ ,_ = st.session_state.results
 
     if detect_type == "Objects + Segmentation":
         segmentation_mask = detections.mask
@@ -251,10 +269,15 @@ def add_to_list(data):
         st.session_state.list = data
     st.session_state.add_to_list = True
 
+    #Save the detected image result
+    image_path = Path(settings.RESULTS_DIR, st.session_state.image_name)
+    cv2.imwrite(str(image_path), cv2.cvtColor(st.session_state.results[4], cv2.COLOR_RGB2BGR))
+
 def clear_image_list():
     st.session_state.list = None
     st.session_state.add_to_list = False
     st.experimental_rerun()
+    clear_folder(settings.RESULTS_DIR)
 
 def substrate_selection():
     data_df = pd.DataFrame(
@@ -282,9 +305,32 @@ def substrate_selection():
     )
     return res.loc[0]["Substrate"]
 
+def zip_images():
+    file_paths = get_all_file_paths("Detected_Images")
+    with zipfile.ZipFile('Detected_Images/Detection_Images.zip', 'w') as img_zip:
+        for file in file_paths:
+            img_zip.write(file)
+    with open("Detected_Images/Detection_Images.zip", 'rb') as fp:
+        st.download_button( label = "Download Images",
+                            help = "Download detection result images",
+                            data = fp,
+                            file_name = "Detection_Images.zip",
+                            mime='text/zip')
 
-
-
+def get_all_file_paths(directory):
+  
+    # initializing empty file paths list
+    file_paths = []
+  
+    # crawling through directory and subdirectories
+    for root, directories, files in os.walk(directory):
+        for filename in files:
+            # join the two strings in order to form the full filepath.
+            filepath = os.path.join(root, filename)
+            file_paths.append(filepath)
+  
+    # returning all file paths
+    return file_paths   
 
 
 

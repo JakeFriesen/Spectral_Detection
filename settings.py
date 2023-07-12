@@ -22,11 +22,14 @@ SOURCES_LIST = [IMAGE, VIDEO]
 
 # Images config
 IMAGES_DIR = ROOT / 'images'
-DEFAULT_IMAGE = IMAGES_DIR / 'GX010143.jpg'
-DEFAULT_DETECT_IMAGE = IMAGES_DIR / '143_detected.jpg'
+DEFAULT_DIR = ROOT / 'default'
+DEFAULT_IMAGE = DEFAULT_DIR / 'GX010143.jpg'
+DEFAULT_DETECT_IMAGE = DEFAULT_DIR / '143_detected.jpg'
 
 # ML Model config
 MODEL_DIR = ROOT / 'weights'
 # DETECTION_MODEL = MODEL_DIR / 'urchin_star-jun_16.pt'
 DETECTION_MODEL = MODEL_DIR / 'kelp_segmentor_V16_0.pt'
 SEGMENTATION_MODEL = MODEL_DIR / 'kelp_segmentor_V16_0.pt'
+RESULTS_DIR = ROOT / 'Detected_Images'
+

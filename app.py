@@ -22,6 +22,8 @@ if 'image_name' not in st.session_state:
     st.session_state.image_name = None
 if 'list' not in st.session_state:
     st.session_state.list = None
+if 'img_list' not in st.session_state:
+    st.session_state.img_list = None
 if 'add_to_list' not in st.session_state:
     st.session_state.add_to_list = False
 if 'img_num' not in st.session_state:
@@ -178,6 +180,7 @@ with tab1:
                                 mime='text/csv')
             except:
                 st.write("Add items to the list to download them")
+            helper.zip_images()
             if st.button("Clear Image List", help="Clear the saved image data"):
                 helper.clear_image_list()
                         
