@@ -272,6 +272,8 @@ def add_to_list(data):
     #Save the detected image result
     image_path = Path(settings.RESULTS_DIR, st.session_state.image_name)
     cv2.imwrite(str(image_path), cv2.cvtColor(st.session_state.results[4], cv2.COLOR_RGB2BGR))
+    #Make the zip here, delete the older zip
+
 
 def clear_image_list():
     st.session_state.list = None
@@ -306,6 +308,8 @@ def substrate_selection():
     return res.loc[0]["Substrate"]
 
 def zip_images():
+    if os.path.exists("Detected_Images/Detection_Images.zip"):
+        os.remove("Detected_Images/Detection_Images.zip")
     file_paths = get_all_file_paths("Detected_Images")
     with zipfile.ZipFile('Detected_Images/Detection_Images.zip', 'w') as img_zip:
         for file in file_paths:
