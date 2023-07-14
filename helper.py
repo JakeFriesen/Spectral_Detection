@@ -309,6 +309,9 @@ def substrate_selection():
     return res.loc[0]["Substrate"]
 
 def zip_images():
+    if not os.path.exists('Detected_Images'):
+        os.mkdir('Detected_Images')
+
     if os.path.exists("Detected_Images/Detection_Images.zip"):
         os.remove("Detected_Images/Detection_Images.zip")
     file_paths = get_all_file_paths("Detected_Images")

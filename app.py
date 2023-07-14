@@ -1,6 +1,7 @@
 # Python In-built packages
 from pathlib import Path
 import PIL
+import os
 
 # External packages
 import streamlit as st
@@ -103,6 +104,8 @@ with tab1:
         if source_img_list:
             try:
                 for img in source_img_list:
+                    if not os.path.exists(settings.IMAGES_DIR):
+                        os.mkdir(settings.IMAGES_DIR)
                     img_path = Path(settings.IMAGES_DIR, img.name)
                     with open(img_path, 'wb') as file:
                         file.write(img.getbuffer())
