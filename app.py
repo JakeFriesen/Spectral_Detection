@@ -153,14 +153,11 @@ with tab1:
         if st.session_state['detect']:
             #Show the detection results
             with st.spinner("Calculating Stats..."):
-                # if detect_type == "Objects + Segmentation":
                 selected_df = None
                 try:
                     selected_df = helper.results_math(uploaded_image, detect_type)
                 except:
                     st.write("Upload an image first")
-                # else:
-                #     selected_df = helper.show_detection_results()
                 
             #Download Button
             list_btn = st.button('Add to List')
@@ -175,17 +172,21 @@ with tab1:
         if st.session_state.add_to_list:
             st.write("Image List:")
             st.dataframe(st.session_state.list)
-            try:
-                st.download_button( label = "Download Results", 
-                                help = "Download a csv with the saved image results",
-                                data=st.session_state.list.to_csv().encode('utf-8'), 
-                                file_name="Detection_Results.csv", 
-                                mime='text/csv')
-            except:
-                st.write("Add items to the list to download them")
-            helper.zip_images()
-            if st.button("Clear Image List", help="Clear the saved image data"):
-                helper.clear_image_list()
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                try:
+                    st.download_button( label = "Download Results", 
+                                    help = "Download a csv with the saved image results",
+                                    data=st.session_state.list.to_csv().encode('utf-8'), 
+                                    file_name="Detection_Results.csv", 
+                                    mime='text/csv')
+                except:
+                    st.write("Add items to the list to download them")
+            with col2:
+                helper.zip_images()
+            with col3:
+                if st.button("Clear Image List", help="Clear the saved image data"):
+                    helper.clear_image_list()
                         
 
     elif source_radio == settings.VIDEO:
