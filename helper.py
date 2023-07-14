@@ -113,7 +113,7 @@ def predict(_model, _uploaded_image, confidence, detect_type):
         st.session_state['predicted'] = True
         st.session_state.results = [boxes, detections, classes, labels]
     else:
-        box_annotator = sv.BoxAnnotator(text_scale=1, text_thickness=2, thickness=2, text_color=Color.white())
+        box_annotator = sv.BoxAnnotator(text_scale=3, text_thickness=4, thickness=4, text_color=Color.white())
         annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=st.session_state.results[1], labels=st.session_state.results[3])
         st.image(annotated_image, caption='Detected Image', use_column_width=True)
         if detect_type == "Objects + Segmentation":
@@ -325,40 +325,6 @@ def display_tracker_options():
         return is_display_tracker, tracker_type
     return is_display_tracker, None
 
-
-def _display_detected_frames(conf, model, st_frame, image, is_display_tracking=None, tracker=None):
-    """
-    Display the detected objects on a video frame using the YOLOv8 model.
-
-    Args:
-    - conf (float): Confidence threshold for object detection.
-    - model (YoloV8): A YOLOv8 object detection model.
-    - st_frame (Streamlit object): A Streamlit object to display the detected video.
-    - image (numpy array): A numpy array representing the video frame.
-    - is_display_tracking (bool): A flag indicating whether to display object tracking (default=None).
-
-    Returns:
-    None
-    """
-
-    # Resize the image to a standard size
-    image = cv2.resize(image, (720, int(720*(9/16))))
-
-    # Display object tracking, if specified
-    if is_display_tracking:
-        res = model.track(image, conf=conf, persist=True, tracker=tracker)
-    else:
-        # Predict the objects in the image using the YOLOv8 model
-        res = model.predict(image, conf=conf)
-
-    # # Plot the detected objects on the video frame
-    res_plotted = res[0].plot()
-    st_frame.image(res_plotted,
-                   caption='Detected Video',
-                   channels="BGR",
-                   use_column_width=True
-                   )
-    
 def preview_video_upload(video_name,data):
     with open(video_name, 'wb') as video_file:
         video_file.write(data)
@@ -375,9 +341,10 @@ def preview_finished_capture(video_name):
             video_bytes = video_file.read()
         if video_bytes:
             st.video(video_bytes)
-            os.remove(video_name)
+    else:
+        print("Video not found")
 
-def capture_uploaded_video(conf, model, fps, source_path, destination_path):
+def capture_uploaded_video(conf, model, fps,  source_vid, destination_path):
     """
     Plays a stored video file. Tracks and detects objects in real-time using the YOLOv8 object detection model.
 
@@ -394,102 +361,74 @@ def capture_uploaded_video(conf, model, fps, source_path, destination_path):
     Raises:
         None
     """
-    _, tracker = display_tracker_options()
+    with st.spinner("Processing Video Capture..."):
+        _, tracker = display_tracker_options()
 
-    if st.sidebar.button('Detect Video Objects'):
-        try:
-            vid_cap = cv2.VideoCapture(str(source_path))
-            video_out = cv2.VideoWriter(str(destination_path), cv2.VideoWriter_fourcc(*'h264'), fps, (960, int(960*(9/16))))
-            Urchins = [0,0]
-            frame_count = 0
-            while (vid_cap.isOpened()):
-                success, frame = vid_cap.read()
-                frame_count = frame_count + 1
-                if success:
-                    frame = cv2.resize(frame, (960, int(960*(9/16))))
-                    print(settings.DEVICE)
-                    results = model.track(frame, conf=conf, iou=0.2, persist=True, tracker=tracker, device=settings.DEVICE)[0]
+        if st.sidebar.button('Detect Video Objects'):
+            try:
+                vid_cap = cv2.VideoCapture(str(source_vid))
+                video_out = cv2.VideoWriter(str(destination_path),  cv2.VideoWriter_fourcc(*'h264'), fps, (int(vid_cap.get(3)), int(vid_cap.get(4))))
+                if video_out is None:
+                    raise Exception("Error creating VideoWriter")
+                Urchins = [0,0]
+                frame_count = 0
+                while (vid_cap.isOpened()):
+                    success, frame = vid_cap.read()
+                    frame_count = frame_count + 1
+                    if success:
+                        results = model.track(frame, conf=conf, iou=0.2, persist=True, tracker=tracker, device=settings.DEVICE)[0]
 
-                    #boxes = res[0].boxes
-                    #detections = sv.Detections.from_yolov8(res[0])
-                    #classes = res[0].names
- 
-                    #if res[0].boxes.id is not None:
-                    #    ids = res[0].boxes.id.cpu().numpy().astype(int)
-                    #    clss = res[0].boxes.cls.cpu().numpy().astype(int)
- 
-                    #    for box_num  in range(len(boxes)):
-                    #        if clss[box_num] == 1:
-                    #            if int(ids[box_num])>Urchins[1]:
-                    #                if frame_count%10==0:
-                    #                    Urchins[0] = Urchins[0] + 1
-                    #                    Urchins[1] = ids[box_num]
-                    #        box_num = box_num + 1
- 
-                    #    labels = [
-                    #        f"{ids[idx]} {classes[class_id]} {confidence:0.2f}"
-                    #        for idx, [_, _, confidence, class_id, _] in enumerate(detections)
-                    #        ]
-                    #        
-                    #    box_annotator = sv.BoxAnnotator(text_scale=0.5, text_thickness=1, thickness=2, text_color=Color.white())
-                    #    frame = box_annotator.annotate(scene=np.array(frame), detections=detections, labels=labels)
-                    #cv2.putText(
-                    #    frame,
-                    #    f"Urchins: {Urchins[0]}",
-                    #    (20,70),
-                    #    cv2.FONT_HERSHEY_SIMPLEX,
-                    #    1,
-                    #    (0, 255, 255),
-                    #    2,
-                    #)
-                    boxes = results.boxes.xyxy.cpu().numpy().astype(int)
-                    if results.boxes.id is not None:
-                        num = len(results.boxes.id)
-                        ids = results.boxes.id.cpu().numpy().astype(int)
-                        clss = results.boxes.cls.cpu().numpy().astype(int)
-                        confs = results.boxes.conf.cpu().numpy().astype(float)
+                        if results.boxes.id is not None:
+                            boxes = results.boxes.xyxy.cpu().numpy().astype(int)
+                            ids = results.boxes.id.cpu().numpy().astype(int)
+                            clss = results.boxes.cls.cpu().numpy().astype(int)
+                            confs = results.boxes.conf.cpu().numpy().astype(float)
 
+                            # Label Detections
+                            for box_num  in range(len(boxes)):
+                                color =  (0, 255, 0)
+                                if clss[box_num] == 1:
+                                    if ids[box_num]>Urchins[1]:
+                                        if frame_count%10==0:
+                                            Urchins[0]=  Urchins[0] +1
+                                            Urchins[1] = ids[box_num]
+                                            color =  (255, 0, 255)
+                                        else:
+                                            color =  (163, 255, 163) 
 
-                        for box_num  in range(len(boxes)):
-                            color =  (0, 255, 0)
-                            if clss[box_num] == 1:
-                                if ids[box_num]>Urchins[1]:
-                                    if frame_count%10==0:
-                                        Urchins[0]=  Urchins[0] +1
-                                        Urchins[1] = ids[box_num]
-                                        color =  (255, 0, 255)
-                                    else:
-                                        color =  (163, 255, 163) 
+                                cv2.rectangle( 
+                                    frame,
+                                    (boxes[box_num][0], boxes[box_num][1]),
+                                    (boxes[box_num][2], boxes[box_num][3]),
+                                    color,
+                                    2)
+                                cv2.putText(
+                                    frame,
+                                    f" Id:{ids[box_num]} Class:{clss[box_num]}; Conf:{round(confs[box_num],2)} ",
+                                    (boxes[box_num][0], boxes[box_num][1]),
+                                    cv2.FONT_HERSHEY_SIMPLEX,
+                                    0.5,
+                                    color,
+                                    2)
 
-                            cv2.rectangle(frame, (boxes[box_num][0], boxes[box_num][1]), (boxes[box_num][2], boxes[box_num][3]), color, 2)
-                            cv2.putText(
-                                frame,
-                                f" Id:{ids[box_num]} Class:{clss[box_num]}; Conf:{round(confs[box_num],2)} ",
-                                (boxes[box_num][0], boxes[box_num][1]),
-                                cv2.FONT_HERSHEY_SIMPLEX,
-                                0.5,
-                                color,
-                                2,
-                            )
-                            box_num =box_num+1
-
-                    cv2.putText(
-                        frame,
-                        f"Urchins: {Urchins[0]}",
-                        (20,70),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        1,
-                        (0, 255, 255),
-                        2,
-                    )    
-                    video_out.write(frame)
-                else:
-                    vid_cap.release()
-                    video_out.release()
-                    os.remove(source_path)
-                    break
-        except Exception as e:
-            import traceback
-            st.sidebar.error("Error loading video: " + str(e))
-            traceback.print_exc()
+                        cv2.putText(
+                            frame,
+                            f"Urchins: {Urchins[0]}",
+                            (20,70),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            1,
+                            (0, 255, 255),
+                            2)    
+                        frame = cv2.resize(frame, (int(vid_cap.get(3)), int(vid_cap.get(4))))
+                        video_out.write(frame)
+                    else:
+                        break
+                vid_cap.release()
+                video_out.release()
+                if os.path.exists(destination_path):
+                    print("Capture Done.")
+            except Exception as e:
+                import traceback
+                st.sidebar.error("Error loading video: " + str(e))
+                traceback.print_exc()
     return True

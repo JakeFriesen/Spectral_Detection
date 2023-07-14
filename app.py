@@ -4,6 +4,7 @@ import PIL
 
 # External packages
 import streamlit as st
+from ffmpy import FFmpeg
 
 # Local Modules
 import settings
@@ -158,15 +159,20 @@ with tab1:
             "Upload a Video...", type=("mp4"), key = "src_vid")
         interval = st.sidebar.slider("Select Capture Rate:", 0.25, 4.00, 1.00, 0.25)
         if source_vid is not None:
-            video_path = 'temp_video.mp4'
-            des_path = 'test.mp4'
+            vid_path = 'preprocess_temp.mp4'
+            des_path = 'upload.mp4'
+            h264_path = 'upload_h264.mp4'
             bytes_data = source_vid.getvalue()
-            video_path = helper.preview_video_upload(video_path, bytes_data)
-            Done = helper.capture_uploaded_video(confidence, model, interval*25, video_path, des_path)
+            video_path = helper.preview_video_upload(vid_path, bytes_data)
+            Done = helper.capture_uploaded_video(confidence, model, interval*25, vid_path, des_path)
             if (True == Done):
+                #ff = FFmpeg(
+                #    executable='E:\\Dev\\ffmpeg-6.0-essentials_build\\bin\\ffmpeg.exe',
+                #    inputs={des_path: None},
+                #    outputs={h264_path: '-c:v libx264'}
+                #)
+                #ff.run()
                 helper.preview_finished_capture(des_path)
-
-            #helper.play_stored_video(confidence, model, video_path)
 
     else:
         st.error("Please select a valid source type!")
