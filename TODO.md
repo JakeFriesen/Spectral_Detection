@@ -16,9 +16,9 @@
     - [ ] Selectable frame sequence (transects)
     - [ ] Individual tracking after detection (transects)
     - [ ] Finding optimal frame (drop quadrat)
-- [ ] Results
-    - [ ] Area calculation inside pvc pipe (need dimensions)
-    - [ ] Diameter of urchins, stars? (need dimensions)
+- [x] Results
+    - [x] Area calculation inside pvc pipe (need dimensions)
+    - [x] Diameter of urchins, stars? (need dimensions)
     - [x] Spreadsheet formatting
 - [ ] Model (Matt)
     - [x] Better kelp model
@@ -34,23 +34,23 @@
 
 
 Week of July 10th:
-- [ ] Get Area results calculated (Estimated numbers for now)
+- [x] Get Area results calculated (Estimated numbers for now)
     - [x] Area covered by each species (cm^2)
     - [x] Diameter of everything (no discrimination for now)
 - [ ] Manual Detection Working
     - [ ] Get the detection bounding boxes to show in the live editor
     - [ ] Get the list of resulting bounding boxes into a useable format at the end (for segmentation)
     - [ ] Remove selection in the results list
-- [ ] Get YOLO segmentation masks working
+- [x] Get YOLO segmentation masks working
     - [x] Temporarily remove SAM segmentation
     - [x] Use mask results in the same way as SAM
     - [ ] Check if model can output segmentation? Or up to user?
-- [ ] Saving Result Images
-    - [ ] Add to List should also save the detection/segmentation image (with updated selections)
-    - [ ] Extra button to download the images
+- [x] Saving Result Images
+    - [x] Add to List should also save the detection/segmentation image (with updated selections)
+    - [x] Extra button to download the images
 - [ ] Installation Documentation
-    - [ ] Remove SAM model from GitHub, add description about where to add model (unless unused at this point)
-    - [ ] Talk to Sam about other issues he found when installing it (pip version?)
+    - [x] Remove SAM model from GitHub, add description about where to add model (unless unused at this point)
+    - [x] Talk to Sam about other issues he found when installing it (pip version?)
     - [ ] Remove unused requirements
 - [ ] Final Report
     - [ ] Get a rough draft started with bullet points in all sections

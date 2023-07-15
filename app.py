@@ -61,7 +61,10 @@ confidence = float(st.sidebar.slider(
 # Selecting The Model to use
 if model_type == 'Built-in':
     #Built in model - Will be the best we currently have
-    model_path = Path(settings.DETECTION_MODEL)
+    if detect_type == "Objects Only":
+        model_path = Path(settings.DETECTION_MODEL)
+    else:
+        model_path = Path(settings.SEGMENTATION_MODEL)
     try:
         model = helper.load_model(model_path)
     except Exception as ex:
