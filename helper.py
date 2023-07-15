@@ -373,6 +373,7 @@ def zip_images():
                             file_name = "Detection_Images.zip",
                             mime='text/zip')
 
+
 def get_all_file_paths(directory):
   
     # initializing empty file paths list
@@ -404,6 +405,28 @@ def interactive_detections():
             bboxes.append([top_coord[0], top_coord[1], box[2], box[3]])
         for detections in st.session_state.results[1]:
             labels.append(int(detections[3])) 
+
+    if 'result_dict' not in st.session_state:
+        result_dict = {}
+        st.session_state['result_dict'] = result_dict.copy()
+    if st.session_state.image_name not in st.session_state.result_dict:
+        st.session_state['result_dict'][st.session_state.image_name] = {'bboxes': bboxes,'labels':labels}
+        
+
+    target_image_path = Path(settings.IMAGES_DIR , st.session_state.image_name)
+    new_labels = detection(image_path=target_image_path, 
+                        bboxes=st.session_state['result_dict'][st.session_state.image_name]['bboxes'], 
+                        labels=st.session_state['result_dict'][st.session_state.image_name]['labels'], 
+                        label_list=label_list, 
+                        key=st.session_state.image_name,
+                        height = 1080,
+                        width = 1920)
+    if new_labels is not None:
+        st.session_state['result_dict'][st.session_state.image_name]['bboxes'] = [v['bbox'] for v in new_labels]
+        st.session_state['result_dict'][st.session_state.image_name]['labels'] = [v['label_id'] for v in new_labels]
+        return True
+    else:
+        return False
 
     if 'result_dict' not in st.session_state:
         result_dict = {}
