@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import supervision as sv
 from supervision.draw.color import Color
+from streamlit_image_annotation import detection
 import os, shutil
 import zipfile
 from pathlib import Path
@@ -99,6 +100,8 @@ def download_boxes(selected_boxes, img_name):
 def predict(_model, _uploaded_image, confidence, detect_type):
     boxes = []
     labels = []
+
+    # Detection Stage
     if st.session_state['predicted'] == False:
         res = _model.predict(_uploaded_image, conf=confidence)
         boxes = res[0].boxes
@@ -114,33 +117,30 @@ def predict(_model, _uploaded_image, confidence, detect_type):
         box_annotator = sv.BoxAnnotator(text_scale=2, text_thickness=3, thickness=3, text_color=Color.white())
         annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=detections, labels=labels)
         st.image(annotated_image, caption='Detected Image', use_column_width=True)
-        
-        #Segmentation
-        if detect_type == "Objects + Segmentation":
-            with st.spinner('Running Segmenter...'):
-                #Do the Segmentation
-                # detections.mask = segment(
-                #     image=cv2.cvtColor(np.array(_uploaded_image), cv2.COLOR_BGR2RGB),
-                #     xyxy=detections.xyxy
-                # )
-                # annotate image with detections
-                box_annotator = sv.BoxAnnotator()
-                mask_annotator = sv.MaskAnnotator()
-                seg_annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
-                # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
-                st.image(seg_annotated_image, caption='Segmented Image', use_column_width=True)
-                # results_math(detections, _uploaded_image, classes)
-        st.session_state['predicted'] = True
         st.session_state.results = [boxes, detections, classes, labels, annotated_image]
-    else:
-        box_annotator = sv.BoxAnnotator(text_scale=3, text_thickness=4, thickness=4, text_color=Color.white())
-        annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=st.session_state.results[1], labels=st.session_state.results[3])
-        st.image(annotated_image, caption='Detected Image', use_column_width=True)
-        if detect_type == "Objects + Segmentation":
+    #Interactive Detection Stage
+    if interactive_detections():
+        #Need to re-run segmenter, the bounding boxes have changed
+        st.session_state.segmented = False
+
+    #Segmentation Stage
+    if detect_type == "Objects + Segmentation" and st.session_state.segmented == False:
+        with st.spinner('Running Segmenter...'):
+            #Do the Segmentation
+            # st.write(detections.xyxy)
+            new_boxes = [[b[0], b[1], b[2]+b[0], b[3]+b[1]] for b in st.session_state['result_dict'][st.session_state.image_name]['bboxes']]
+            new_boxes = np.array(new_boxes)
+
+            # annotate image with detections
             box_annotator = sv.BoxAnnotator()
             mask_annotator = sv.MaskAnnotator()
-            annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=st.session_state.results[1])
+            annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
+            # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
             st.image(annotated_image, caption='Segmented Image', use_column_width=True)
+            # results_math(detections, _uploaded_image, classes)
+            st.session_state.segmented = True
+    st.session_state['predicted'] = True
+    st.session_state.results[1] = detections  
     
 
 #Results Calculations
@@ -340,6 +340,67 @@ def get_all_file_paths(directory):
     # returning all file paths
     return file_paths   
 
+
+def interactive_detections():
+    #Grab the list of classes for this detection
+    #Limited to the classes in the current model, can't add more
+    #TODO: This could be a hardcoded, or user updateable cached list
+    label_list = list(st.session_state.results[2].values())
+
+    bboxes = []
+    labels = []
+
+    #This is the first run, take the results from the initial detection
+    if st.session_state['predicted'] == False:
+        for box in st.session_state.results[0].xywh.numpy():
+            top_coord = [box[0] - (box[2]/2), box[1] - (box[3]/2)]
+            bboxes.append([top_coord[0], top_coord[1], box[2], box[3]])
+        for detections in st.session_state.results[1]:
+            labels.append(int(detections[3])) 
+
+    if 'result_dict' not in st.session_state:
+        result_dict = {}
+        st.session_state['result_dict'] = result_dict.copy()
+    if st.session_state.image_name not in st.session_state.result_dict:
+        st.session_state['result_dict'][st.session_state.image_name] = {'bboxes': bboxes,'labels':labels}
+        
+
+    target_image_path = Path(settings.IMAGES_DIR , st.session_state.image_name)
+    new_labels = detection(image_path=target_image_path, 
+                        bboxes=st.session_state['result_dict'][st.session_state.image_name]['bboxes'], 
+                        labels=st.session_state['result_dict'][st.session_state.image_name]['labels'], 
+                        label_list=label_list, 
+                        key=st.session_state.image_name,
+                        height = 1080,
+                        width = 1920)
+    if new_labels is not None:
+        st.session_state['result_dict'][st.session_state.image_name]['bboxes'] = [v['bbox'] for v in new_labels]
+        st.session_state['result_dict'][st.session_state.image_name]['labels'] = [v['label_id'] for v in new_labels]
+        return True
+    else:
+        return False
+
+    if 'result_dict' not in st.session_state:
+        result_dict = {}
+        st.session_state['result_dict'] = result_dict.copy()
+    if st.session_state.image_name not in st.session_state.result_dict:
+        st.session_state['result_dict'][st.session_state.image_name] = {'bboxes': bboxes,'labels':labels}
+        
+
+    target_image_path = Path(settings.IMAGES_DIR , st.session_state.image_name)
+    new_labels = detection(image_path=target_image_path, 
+                        bboxes=st.session_state['result_dict'][st.session_state.image_name]['bboxes'], 
+                        labels=st.session_state['result_dict'][st.session_state.image_name]['labels'], 
+                        label_list=label_list, 
+                        key=st.session_state.image_name,
+                        height = 1080,
+                        width = 1920)
+    if new_labels is not None:
+        st.session_state['result_dict'][st.session_state.image_name]['bboxes'] = [v['bbox'] for v in new_labels]
+        st.session_state['result_dict'][st.session_state.image_name]['labels'] = [v['label_id'] for v in new_labels]
+        return True
+    else:
+        return False
 
 
 def load_model(model_path):

@@ -31,3 +31,4 @@ opencv-python-headless
 segment_anything
 supervision
 py-cpuinfo
+streamlit_image_annotation

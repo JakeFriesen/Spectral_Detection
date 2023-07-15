@@ -150,8 +150,9 @@ with tab1:
                     #Perform the prediction
                     try:
                         helper.predict(model, uploaded_image, confidence, detect_type)
-                    except:
+                    except Exception as ex:
                         st.write("Upload an image or select a model to run detection")
+                        st.write(ex)
         #If Detection is clicked
         if st.session_state['detect']:
             #Show the detection results
