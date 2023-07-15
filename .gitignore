@@ -1457,14 +1457,11 @@ Scripts/pip3.11.exe
 Scripts/pip3.exe
 __pycache__/helper.cpython-310.pyc
 __pycache__/settings.cpython-310.pyc
-weights/kelpv6_jun26.pt
-weights/sam_vit_h_4b8939.pth
-weights/jun26_urchin_seastar_cucumber.pt
 app.py
-weights/kelp_detector_V16_0.pt
 Detected_Images/Detection_Images.zip
 Detected_Images/GL010240 (1).jpg
 Detected_Images/GL010240.jpg
 Detected_Images/GX010143.jpg
 Detected_Images/GX010168.jpg
-images/GX010168.jpg
+images/
+
