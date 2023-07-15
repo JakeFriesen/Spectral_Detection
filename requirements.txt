@@ -30,4 +30,5 @@ ultralytics
 opencv-python-headless
 segment_anything
 supervision
-ffmpy
+ffmpeg
+ffmpegcv

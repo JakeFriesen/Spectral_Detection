@@ -133,7 +133,7 @@ with tab1:
                 # if detect_type == "Objects + Segmentation":
                 selected_df = helper.results_math(uploaded_image, detect_type)
                 # else:
-                #     selected_df = helper.show_detection_results()
+                #     selected_df = helper.show_detection_results
                 
             #Download Button
             list_btn = st.button('Add to List')
@@ -164,15 +164,9 @@ with tab1:
             h264_path = 'upload_h264.mp4'
             bytes_data = source_vid.getvalue()
             video_path = helper.preview_video_upload(vid_path, bytes_data)
-            Done = helper.capture_uploaded_video(confidence, model, interval*25, vid_path, des_path)
+            Done = helper.capture_uploaded_video(confidence, model, interval, vid_path, h264_path)
             if (True == Done):
-                #ff = FFmpeg(
-                #    executable='E:\\Dev\\ffmpeg-6.0-essentials_build\\bin\\ffmpeg.exe',
-                #    inputs={des_path: None},
-                #    outputs={h264_path: '-c:v libx264'}
-                #)
-                #ff.run()
-                helper.preview_finished_capture(des_path)
+                helper.preview_finished_capture(h264_path)
 
     else:
         st.error("Please select a valid source type!")
@@ -185,4 +179,4 @@ with tab2:
     st.write("Visit the GitHub for this project: https://github.com/JakeFriesen/Spectral_Detection")
 
     st.header("How to Use")
-    st.write("Source: Image will detect species in a single image, video will detect for the whole image")
+    st.write("Source: Image wiill detect species in a single image, video will detect for the whole image")

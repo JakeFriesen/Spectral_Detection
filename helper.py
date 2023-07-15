@@ -6,6 +6,7 @@ import pandas as pd
 import os
 import cv2
 import numpy as np
+import ffmpegcv
 import supervision as sv
 from supervision.draw.color import Color, ColorPalette
 
@@ -336,13 +337,10 @@ def preview_video_upload(video_name,data):
     return video_name
 
 def preview_finished_capture(video_name):
-    if os.path.exists(video_name):
-        with open(video_name, 'rb') as video_file:
-            video_bytes = video_file.read()
-        if video_bytes:
-            st.video(video_bytes)
-    else:
-        print("Video not found")
+    with open(video_name, 'rb') as video_file:
+        video_bytes = video_file.read()
+    if video_bytes:
+        st.video(video_bytes)
 
 def capture_uploaded_video(conf, model, fps,  source_vid, destination_path):
     """
@@ -366,16 +364,15 @@ def capture_uploaded_video(conf, model, fps,  source_vid, destination_path):
 
         if st.sidebar.button('Detect Video Objects'):
             try:
-                vid_cap = cv2.VideoCapture(str(source_vid))
-                video_out = cv2.VideoWriter(str(destination_path),  cv2.VideoWriter_fourcc(*'h264'), fps, (int(vid_cap.get(3)), int(vid_cap.get(4))))
+                vid_cap = ffmpegcv.VideoCapture(source_vid)
+                video_out = ffmpegcv.VideoWriter(destination_path, 'h264', vid_cap.fps*fps)
                 if video_out is None:
                     raise Exception("Error creating VideoWriter")
                 Urchins = [0,0]
                 frame_count = 0
-                while (vid_cap.isOpened()):
-                    success, frame = vid_cap.read()
-                    frame_count = frame_count + 1
-                    if success:
+                with vid_cap, video_out:
+                    for frame in vid_cap:
+                        frame_count = frame_count + 1
                         results = model.track(frame, conf=conf, iou=0.2, persist=True, tracker=tracker, device=settings.DEVICE)[0]
 
                         if results.boxes.id is not None:
@@ -384,7 +381,7 @@ def capture_uploaded_video(conf, model, fps,  source_vid, destination_path):
                             clss = results.boxes.cls.cpu().numpy().astype(int)
                             confs = results.boxes.conf.cpu().numpy().astype(float)
 
-                            # Label Detections
+                            # Label Detection
                             for box_num  in range(len(boxes)):
                                 color =  (0, 255, 0)
                                 if clss[box_num] == 1:
@@ -401,32 +398,30 @@ def capture_uploaded_video(conf, model, fps,  source_vid, destination_path):
                                     (boxes[box_num][0], boxes[box_num][1]),
                                     (boxes[box_num][2], boxes[box_num][3]),
                                     color,
-                                    2)
+                                    5)
                                 cv2.putText(
                                     frame,
                                     f" Id:{ids[box_num]} Class:{clss[box_num]}; Conf:{round(confs[box_num],2)} ",
                                     (boxes[box_num][0], boxes[box_num][1]),
                                     cv2.FONT_HERSHEY_SIMPLEX,
-                                    0.5,
+                                    2,
                                     color,
                                     2)
 
                         cv2.putText(
                             frame,
                             f"Urchins: {Urchins[0]}",
-                            (20,70),
+                            (20,90),
                             cv2.FONT_HERSHEY_SIMPLEX,
-                            1,
+                            5,
                             (0, 255, 255),
                             2)    
-                        frame = cv2.resize(frame, (int(vid_cap.get(3)), int(vid_cap.get(4))))
                         video_out.write(frame)
-                    else:
-                        break
                 vid_cap.release()
                 video_out.release()
                 if os.path.exists(destination_path):
-                    print("Capture Done.")
+                    print("Capture Done. " + str(Urchins[0]) + " of Urchins found.")
+                    return True
             except Exception as e:
                 import traceback
                 st.sidebar.error("Error loading video: " + str(e))
