@@ -1,6 +1,7 @@
 # Python In-built packages
 from pathlib import Path
 import PIL
+import os
 
 # External packages
 import streamlit as st
@@ -23,8 +24,14 @@ if 'image_name' not in st.session_state:
     st.session_state.image_name = None
 if 'list' not in st.session_state:
     st.session_state.list = None
+if 'img_list' not in st.session_state:
+    st.session_state.img_list = None
 if 'add_to_list' not in st.session_state:
     st.session_state.add_to_list = False
+if 'img_num' not in st.session_state:
+    st.session_state.img_num = 0
+if 'next_img' not in st.session_state:
+    st.session_state.next_img = False
 
 # Setting page layout
 st.set_page_config(
@@ -36,6 +43,11 @@ st.set_page_config(
 
 # Main page heading
 st.title("🪸 ECE 499 Marine Species Detection")
+
+st.sidebar.header("Image/Video Config")
+source_radio = st.sidebar.radio(
+    "Select Source", settings.SOURCES_LIST, help="Choose if a single image or video will be used for detection")
+
 # Sidebar
 st.sidebar.header("Detection Configuration")
 # Model Options
@@ -43,14 +55,17 @@ detect_type = st.sidebar.radio("Choose Detection Type", ["Objects Only", "Object
 model_type = st.sidebar.radio("Select Model", ["Built-in", "Upload"])
 
 confidence = float(st.sidebar.slider(
-    "Select Model Confidence", 25, 100, 40
-    # , on_change = helper.repredict()
+    "Select Model Confidence", 25, 100, 40,
+    on_change = helper.repredict(),
     )) / 100
 
 # Selecting The Model to use
 if model_type == 'Built-in':
     #Built in model - Will be the best we currently have
-    model_path = Path(settings.DETECTION_MODEL)
+    if detect_type == "Objects Only":
+        model_path = Path(settings.DETECTION_MODEL)
+    else:
+        model_path = Path(settings.SEGMENTATION_MODEL)
     try:
         model = helper.load_model(model_path)
     except Exception as ex:
@@ -71,12 +86,9 @@ elif model_type == 'Upload':
         # st.error(ex)
 
 
-st.sidebar.header("Image/Video Config")
-source_radio = st.sidebar.radio(
-    "Select Source", settings.SOURCES_LIST, help="Choose if a single image or video will be used for detection")
-
 # Initializing Functions
 # Put here so that the sidebars and title show up while it loads
+#TODO: Deprecated, Remove 
 if st.session_state["initialized"] == False:
     with st.spinner('Initializing...'):
         helper.init_func()
@@ -88,17 +100,29 @@ tab1, tab2 = st.tabs(["Detection", "About"])
 with tab1:
     # If image is selected
     if source_radio == settings.IMAGE:
-        source_img = st.sidebar.file_uploader(
-            "Choose an image...", type=("jpg", "jpeg", "png", 'bmp', 'webp'), key = "src_img")
-        if source_img is not None:
-            helper.change_image(source_img)
-        
+        source_img_list = st.sidebar.file_uploader(
+            "Choose an image...", 
+            type=("jpg", "jpeg", "png", 'bmp', 'webp'), 
+            key = "src_img", 
+            accept_multiple_files= True)
+        if source_img_list:
+            try:
+                for img in source_img_list:
+                    if not os.path.exists(settings.IMAGES_DIR):
+                        os.mkdir(settings.IMAGES_DIR)
+                    img_path = Path(settings.IMAGES_DIR, img.name)
+                    with open(img_path, 'wb') as file:
+                        file.write(img.getbuffer())
+            except:
+                st.sidebar.write("There is an issue with writing image files")
+            helper.change_image(source_img_list)
+            # st.write(st.session_state.img_num)
+            source_img = source_img_list[st.session_state.img_num]
         col1, col2 = st.columns(2)
 
         with col1:
             try:
                 if source_img is None:
-                    # file_name = ""
                     default_image_path = str(settings.DEFAULT_IMAGE)
                     default_image = PIL.Image.open(default_image_path)
                     st.image(default_image_path, caption="Default Image",
@@ -120,38 +144,53 @@ with tab1:
                         use_column_width=True)
             else:
                 #Uploaded image
-                st.sidebar.button('Detect Objects', on_click=helper.click_detect)
+                st.sidebar.button('Detect', on_click=helper.click_detect)
 
-            #If Detection is clicked
-            if st.session_state['detect']:
-                #Perform the prediction
-                helper.predict(model, uploaded_image, confidence, detect_type)
+                #If Detection is clicked
+                if st.session_state['detect']:
+                    #Perform the prediction
+                    try:
+                        helper.predict(model, uploaded_image, confidence, detect_type)
+                    except:
+                        st.write("Upload an image or select a model to run detection")
         #If Detection is clicked
         if st.session_state['detect']:
             #Show the detection results
             with st.spinner("Calculating Stats..."):
-                # if detect_type == "Objects + Segmentation":
-                selected_df = helper.results_math(uploaded_image, detect_type)
-                # else:
-                #     selected_df = helper.show_detection_results
+                selected_df = None
+                try:
+                    selected_df = helper.results_math(uploaded_image, detect_type)
+                except:
+                    st.write("Upload an image first")
                 
             #Download Button
             list_btn = st.button('Add to List')
-            if list_btn:
+            if list_btn and (selected_df is not None):
                 helper.add_to_list(selected_df)
+                st.session_state.next_img = True
+                #This gets the update to be forced, removing the double detect issue.
+                #It does look a bit weird though, consider removing
+                st.experimental_rerun()
     
         #Always showing list if something is in it
         if st.session_state.add_to_list:
             st.write("Image List:")
             st.dataframe(st.session_state.list)
-            try:
-                st.download_button( label = "Download Results", 
-                                data=st.session_state.list.to_csv().encode('utf-8'), 
-                                file_name="Detection_Results.csv", 
-                                mime='text/csv')
-            except:
-                st.write("Add items to the list to download them")
-
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                try:
+                    st.download_button( label = "Download Results", 
+                                    help = "Download a csv with the saved image results",
+                                    data=st.session_state.list.to_csv().encode('utf-8'), 
+                                    file_name="Detection_Results.csv", 
+                                    mime='text/csv')
+                except:
+                    st.write("Add items to the list to download them")
+            with col2:
+                helper.zip_images()
+            with col3:
+                if st.button("Clear Image List", help="Clear the saved image data"):
+                    helper.clear_image_list()
                         
 
     elif source_radio == settings.VIDEO:
@@ -179,4 +218,20 @@ with tab2:
     st.write("Visit the GitHub for this project: https://github.com/JakeFriesen/Spectral_Detection")
 
     st.header("How to Use")
-    st.write("Source: Image will detect species in a single image, video will detect for the whole image")
+    st.write(":blue[**Choose Detection Type:**] Choose to detect species only, or also use segmentation to get coverage results.")
+    st.write(":blue[**Select Model:**] Choose between the built in model, or use your own (supports .pt model files).")
+    st.write(":blue[**Select Model Confidence:**] Choose the confidence threshold cutoff for object detection. Useful for fine tuning detections on particular images.")
+    st.write(":blue[**Select Source:**] Choose to upload an image or video")
+
+    st.header("Image Detection")
+    st.write("After an image is uploaded, the :blue[**Detect**] button will display, and run the detection or segmentation based on the :blue[**Detection Type**] chosen above.")
+    st.write("The detected and segmented images will be displayed, along with the image detection results.")
+    st.header("Results")
+    st.write("A list of results will be displayed, with an index corresponding to the numbered box in the detected image.")
+    st.write("Select which results to keep, manually select the substrate, and press :blue[**Add To List**], which will show the current list of images saved")
+    st.write("When complete, press :blue[**Download Results**] to download the csv file with the resulting data")
+    st.header("Batch Images")
+    st.write("If multiple files are uploaded, after pressing :blue[**Add To List**], pressing :blue[**Detect**] again will load the next image.")
+    st.header("Video Detection")
+    #TODO: VIDEO STUFF
+    st.write("Under Construction...")

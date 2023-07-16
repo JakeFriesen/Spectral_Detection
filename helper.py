@@ -1,6 +1,5 @@
 import math
 from ultralytics import YOLO
-from segment_anything import sam_model_registry, SamPredictor
 import streamlit as st
 import pandas as pd
 import os
@@ -8,23 +7,33 @@ import cv2
 import numpy as np
 import ffmpegcv
 import supervision as sv
-from supervision.draw.color import Color, ColorPalette
+from supervision.draw.color import Color
+import os, shutil
+import zipfile
+from pathlib import Path
 
 import settings
 
-@st.cache_data
-def init_models():
-    SAM_ENCODER_VERSION = "vit_b"
-    SAM_CHECKPOINT_PATH = "weights/sam_vit_b_01ec64.pth"
-    sam = sam_model_registry[SAM_ENCODER_VERSION](checkpoint=SAM_CHECKPOINT_PATH).to(device=settings.DEVICE)
-    global sam_predictor 
-    sam_predictor = SamPredictor(sam)
+
+def clear_folder(folder):
+    if os.path.exists(folder):
+        for filename in os.listdir(folder):
+            file_path = os.path.join(folder, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 def init_func():
-    init_models()
-    # global file_name 
-    # file_name = ""
+    # init_models()
     st.session_state['initialized'] = True
+    #remove detected images
+    clear_folder(settings.RESULTS_DIR)
+    clear_folder(settings.IMAGES_DIR)
+    
 
 
 # Segment Anything Model
@@ -45,24 +54,35 @@ def segment(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
 
 # Checks that a new image is loaded
 # Changes the session state accordingly
-def change_image(img):
+def change_image(img_list):
+    if st.session_state.next_img == True:
+        st.session_state.next_img = False
+        st.session_state['detect'] = False
+        st.session_state['predicted'] = False
+        st.session_state.img_num += 1
+        if(st.session_state.img_num >= len(img_list)):
+            st.write("At the end of image list! Upload more images")
+            st.session_state.img_num = len(img_list)-1
+    if img_list:
+        img = img_list[st.session_state.img_num]
+    else:
+        img = None
     if img.name != st.session_state.image_name:
         st.session_state['detect'] = False
         st.session_state['predicted'] = False
         st.session_state.image_name = img.name
+    
 
-# Use this to repridict IMMEDIATELY, 
+# Use this to repredict IMMEDIATELY, 
 # Detect Does not have to be pressed again
 def repredict():
     st.session_state['predicted'] = False
-    st.write("Repredict, Predicted is false")
 
 
 # Use this to repredict AFTER pressing detect
 def redetect():
     st.session_state['predicted'] = False
     st.session_state['detect'] = False
-    st.write("Redetect, Predicted is false")
 
 # Detect Button 
 def click_detect():
@@ -92,7 +112,7 @@ def predict(_model, _uploaded_image, confidence, detect_type):
                 for idx, [_, _, confidence, class_id, _] in enumerate(detections)
                 ]
         
-        box_annotator = sv.BoxAnnotator(text_scale=3, text_thickness=4, thickness=4, text_color=Color.white())
+        box_annotator = sv.BoxAnnotator(text_scale=2, text_thickness=3, thickness=3, text_color=Color.white())
         annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=detections, labels=labels)
         st.image(annotated_image, caption='Detected Image', use_column_width=True)
         
@@ -100,19 +120,19 @@ def predict(_model, _uploaded_image, confidence, detect_type):
         if detect_type == "Objects + Segmentation":
             with st.spinner('Running Segmenter...'):
                 #Do the Segmentation
-                detections.mask = segment(
-                    image=cv2.cvtColor(np.array(_uploaded_image), cv2.COLOR_BGR2RGB),
-                    xyxy=detections.xyxy
-                )
+                # detections.mask = segment(
+                #     image=cv2.cvtColor(np.array(_uploaded_image), cv2.COLOR_BGR2RGB),
+                #     xyxy=detections.xyxy
+                # )
                 # annotate image with detections
                 box_annotator = sv.BoxAnnotator()
                 mask_annotator = sv.MaskAnnotator()
-                annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
+                seg_annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
                 # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
-                st.image(annotated_image, caption='Segmented Image', use_column_width=True)
+                st.image(seg_annotated_image, caption='Segmented Image', use_column_width=True)
                 # results_math(detections, _uploaded_image, classes)
         st.session_state['predicted'] = True
-        st.session_state.results = [boxes, detections, classes, labels]
+        st.session_state.results = [boxes, detections, classes, labels, annotated_image]
     else:
         box_annotator = sv.BoxAnnotator(text_scale=3, text_thickness=4, thickness=4, text_color=Color.white())
         annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=st.session_state.results[1], labels=st.session_state.results[3])
@@ -126,7 +146,7 @@ def predict(_model, _uploaded_image, confidence, detect_type):
 
 #Results Calculations
 def results_math( _image, detect_type):
-    _, detections, classes ,_ = st.session_state.results
+    _, detections, classes ,_ ,_ = st.session_state.results
 
     if detect_type == "Objects + Segmentation":
         segmentation_mask = detections.mask
@@ -142,11 +162,23 @@ def results_math( _image, detect_type):
     result_list = []
     confidence_list = []
     select_list = []
+    diameter_list = []
+
+    #Side length of PVC box in cm
+    #TODO: Get actual number for this
+    side_length_PVC = 50
 
     for idx, [_, _, confidence, class_id, _] in enumerate(detections):
         if detect_type == "Objects + Segmentation":
-            result = np.sum(new_images[idx] != 255) / new_images[idx].size * 100
+            #Get % of non white pixels inside box (assumed box height is height of image)
+            percentage_of_box = np.sum(new_images[idx] != 255) / (new_images[idx].shape[0]*new_images[idx].shape[0]) * 100
+            #Area of mask is area of PVC * percentage_of_box / 100
+            result = side_length_PVC * side_length_PVC * percentage_of_box / 100
+            #Calculate diameter
+            diameter = 2 * np.sqrt(result / np.pi)
+
             result_list.append(result)
+            diameter_list.append(diameter)
         select = True
         # Append values to respective lists
         index_list.append(idx)
@@ -158,7 +190,8 @@ def results_math( _image, detect_type):
         data = {
             'Index': index_list,
             'class_id': class_id_list,
-            'Coverage (%)': result_list,
+            'Area (cm^2)': result_list,
+            'Diameter (cm)': diameter_list,
             'Confidence': confidence_list,
             'Select': select_list
         }
@@ -177,7 +210,7 @@ def results_math( _image, detect_type):
 
     st.write("Image Detection Results")
     if detect_type == "Objects + Segmentation":
-        edited_df = st.data_editor(df, disabled=["Index", "class_id", "Coverage (%)", "Confidence"])
+        edited_df = st.data_editor(df, disabled=["Index", "class_id", "Area (cm^2)", "Diameter (cm)", "Confidence"])
     else:
         edited_df = st.data_editor(df, disabled=["Index", "class_id", "Confidence"])
     
@@ -191,8 +224,10 @@ def results_math( _image, detect_type):
         col1 = f"(#) " + classes[cl]
         excel[col1] = 0
         if detect_type == "Objects + Segmentation":
-            col2 = f"(%) " + classes[cl]
+            col2 = f"Total " + classes[cl] + f" Area (cm^2) " 
+            col3 = f"Average " + classes[cl] + f" Diameter (cm)"
             excel[col2] = 0.00
+            excel[col3] = 0.00
     
     excel['Substrate'] = substrate
     dfex = pd.DataFrame(excel, index=[st.session_state.image_name])
@@ -206,71 +241,47 @@ def results_math( _image, detect_type):
             #Increment number of class
             dfex.loc[st.session_state.image_name, class_num] += 1
             if detect_type == "Objects + Segmentation":
-                coverage = row['Coverage (%)']
-                class_per = f"(%) " + id
+                coverage = row['Area (cm^2)']
+                class_per = f"Total " + id + f" Area (cm^2) " 
                 #Add to total coverage
                 dfex.loc[st.session_state.image_name, class_per] += coverage
 
+                #Get Average diameter - Take previous average, and use:
+                #  avg_new = ((n-1)*avg_old + d_new)/n
+                class_diameter = f"Average " + id + f" Diameter (cm)"
+                d_new = row['Diameter (cm)']
+                avg_old = dfex.loc[st.session_state.image_name, class_diameter]
+                n = dfex.loc[st.session_state.image_name, class_num]
+                avg_new = ((n-1)*avg_old + d_new)/n
+                dfex.loc[st.session_state.image_name, class_diameter] = avg_new
+
+    #Return Excel Dataframe
     return dfex
 
 def add_to_list(data):
-    #TODO: Update or overwrite list of same images
     if st.session_state.list is not None:
+        #Check for duplicates
+        for index, row in st.session_state.list.iterrows():
+            if row['Image'] == data['Image'][0]:
+                st.session_state.list= st.session_state.list.drop(index)
+
         frames = [st.session_state.list, data]
         st.session_state.list = pd.concat(frames)
     else:
         st.session_state.list = data
     st.session_state.add_to_list = True
-    # st.dataframe(st.session_state.list)
+
+    #Save the detected image result
+    image_path = Path(settings.RESULTS_DIR, st.session_state.image_name)
+    cv2.imwrite(str(image_path), cv2.cvtColor(st.session_state.results[4], cv2.COLOR_RGB2BGR))
+    #Make the zip here, delete the older zip
 
 
-
-
-# def show_detection_results():
-#     boxes, _, _, labels = st.session_state.results
-
-#     #Making the dataframe for an excel sheet
-#     excel = {}
-#     excel['Image'] = st.session_state.image_name
-#     for cl in classes:
-#         col1 = f"(#) " + classes[cl]
-#         excel[col1] = 0
-#     excel['Substrate'] = substrate
-#     # st.write(excel)
-#     dfex = pd.DataFrame(excel, index=[st.session_state.image_name])
-#     # st.dataframe(dfex)
-
-#     #Put data into the excel dataframe
-#     for index, row in edited_df.iterrows():
-#         #Only add data if row is selected
-#         if(row['Select'] == True):
-#             id = index
-#             coverage = row['Coverage (%)']
-#             class_num = f"(#) " + id
-#             class_per = f"(%) " + id
-#             #Increment number of class
-#             dfex.loc[st.session_state.image_name, class_num] += 1
-#             #Add to total coverage
-#             dfex.loc[st.session_state.image_name, class_per] += coverage
-
-
-
-#     selected_boxes = []
-#     try:
-#         with st.expander("Detection Results"):
-#             for idx, box in enumerate(boxes):
-#                 checkbox_label = f"{labels[idx]}"
-#                 checkbox_state = st.checkbox(checkbox_label, value=True)
-#                 if checkbox_state:
-#                     #TODO: Format this result for csv!
-#                     selected_boxes.append(f"{box.xyxy}")
-#     except Exception as ex:
-#         st.write("No image is uploaded yet!")
-
-
-
-
-#     return selected_boxes
+def clear_image_list():
+    st.session_state.list = None
+    st.session_state.add_to_list = False
+    st.experimental_rerun()
+    clear_folder(settings.RESULTS_DIR)
 
 def substrate_selection():
     data_df = pd.DataFrame(
@@ -298,9 +309,37 @@ def substrate_selection():
     )
     return res.loc[0]["Substrate"]
 
+def zip_images():
+    if not os.path.exists('Detected_Images'):
+        os.mkdir('Detected_Images')
 
+    if os.path.exists("Detected_Images/Detection_Images.zip"):
+        os.remove("Detected_Images/Detection_Images.zip")
+    file_paths = get_all_file_paths("Detected_Images")
+    with zipfile.ZipFile('Detected_Images/Detection_Images.zip', 'w') as img_zip:
+        for file in file_paths:
+            img_zip.write(file)
+    with open("Detected_Images/Detection_Images.zip", 'rb') as fp:
+        st.download_button( label = "Download Images",
+                            help = "Download detection result images",
+                            data = fp,
+                            file_name = "Detection_Images.zip",
+                            mime='text/zip')
 
-
+def get_all_file_paths(directory):
+  
+    # initializing empty file paths list
+    file_paths = []
+  
+    # crawling through directory and subdirectories
+    for root, directories, files in os.walk(directory):
+        for filename in files:
+            # join the two strings in order to form the full filepath.
+            filepath = os.path.join(root, filename)
+            file_paths.append(filepath)
+  
+    # returning all file paths
+    return file_paths   
 
 
 

@@ -1,0 +1,58 @@
+## TODO:
+- [ ] User Interface (Jake)
+    - [x] Upload your own model
+    - [x] Choose image/video, transect/drop quadrat, confidence
+    - [x] Manual selection of detections (check how intuitive this is)
+    - [ ] Slider for video slicing
+    - [x] Batch detection workflow
+    - [x] Manual substrate classifier
+- [ ] Functional UI Changes
+    - [ ] Use form for sidebar toggles
+    - [x] Add Substrate to table
+    - [x] Add detection results path (no coverage)
+    - [x] Add a button to clear the image list
+- [x] SAM Integration into website (Jake)
+- [ ] Video parsing function
+    - [ ] Selectable frame sequence (transects)
+    - [ ] Individual tracking after detection (transects)
+    - [ ] Finding optimal frame (drop quadrat)
+- [x] Results
+    - [x] Area calculation inside pvc pipe (need dimensions)
+    - [x] Diameter of urchins, stars? (need dimensions)
+    - [x] Spreadsheet formatting
+- [ ] Model (Matt)
+    - [x] Better kelp model
+    - [ ] More data from Romina (?) to make models better
+    - [ ] Subclass model for sea stars (# of legs)
+- [ ] Manual addition of detections
+    - [ ] Using a python chart? Need to convert detection results 
+    - [ ] https://discuss.streamlit.io/t/new-component-streamlit-image-annotation-a-easy-way-to-annotate-images-using-streamlit/41146
+- [ ] Documentation
+    - [x] How to use in the app
+    - [ ] Add it to the GitHub: https://github.com/JakeFriesen/Spectral_Detection
+    - [ ] Collect all data, and give it to Navneet after project is over
+
+
+Week of July 10th:
+- [x] Get Area results calculated (Estimated numbers for now)
+    - [x] Area covered by each species (cm^2)
+    - [x] Diameter of everything (no discrimination for now)
+- [ ] Manual Detection Working
+    - [ ] Get the detection bounding boxes to show in the live editor
+    - [ ] Get the list of resulting bounding boxes into a useable format at the end (for segmentation)
+    - [ ] Remove selection in the results list
+- [x] Get YOLO segmentation masks working
+    - [x] Temporarily remove SAM segmentation
+    - [x] Use mask results in the same way as SAM
+    - [ ] Check if model can output segmentation? Or up to user?
+- [x] Saving Result Images
+    - [x] Add to List should also save the detection/segmentation image (with updated selections)
+    - [x] Extra button to download the images
+- [ ] Installation Documentation
+    - [x] Remove SAM model from GitHub, add description about where to add model (unless unused at this point)
+    - [x] Talk to Sam about other issues he found when installing it (pip version?)
+    - [ ] Remove unused requirements
+- [ ] Final Report
+    - [ ] Get a rough draft started with bullet points in all sections
+- [ ] Website (Sam)
+- [ ] Poster (Paul)

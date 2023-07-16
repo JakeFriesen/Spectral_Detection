@@ -32,3 +32,4 @@ segment_anything
 supervision
 ffmpeg
 ffmpegcv
+py-cpuinfo

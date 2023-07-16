@@ -1462,3 +1462,11 @@ weights/sam_vit_h_4b8939.pth
 weights/jun26_urchin_seastar_cucumber.pt
 *.mp4
 *.dll
+app.py
+Detected_Images/Detection_Images.zip
+Detected_Images/GL010240 (1).jpg
+Detected_Images/GL010240.jpg
+Detected_Images/GX010143.jpg
+Detected_Images/GX010168.jpg
+images/
+
