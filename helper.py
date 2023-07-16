@@ -127,8 +127,16 @@ def predict(_model, _uploaded_image, confidence, detect_type):
     if detect_type == "Objects + Segmentation" and st.session_state.segmented == False:
         with st.spinner('Running Segmenter...'):
             #Do the Segmentation
-            new_boxes = [[b[0], b[1], b[2]+b[0], b[3]+b[1]] for b in st.session_state['result_dict'][st.session_state.image_name]['bboxes']]
-            new_boxes = np.array(new_boxes)
+            # new_boxes = [[b[0], b[1], b[2]+b[0], b[3]+b[1]] for b in st.session_state['result_dict'][st.session_state.image_name]['bboxes']]
+            # new_boxes = np.array(new_boxes)
+            new_boxes = np.array(st.session_state['result_dict'][st.session_state.image_name]['bboxes'])
+            new_boxes = np.floor(new_boxes)
+            # Only choose the detection masks that have the same boxes as new_boxes
+            cur_boxes = st.session_state.results[0].xyxy.numpy()
+            cur_boxes = np.floor(cur_boxes)
+            for idx, [_, _, confidence, class_id, _] in enumerate(detections):
+                if cur_boxes[idx] not in new_boxes:
+                    detections.mask[idx] = None
 
             # annotate image with detections
             box_annotator = sv.BoxAnnotator()
@@ -165,11 +173,17 @@ def results_math( _image, detect_type):
     # formatted boxes from manual annotator
     new_boxes = [[b[0], b[1], b[2]+b[0], b[3]+b[1]] for b in st.session_state['result_dict'][st.session_state.image_name]['bboxes']]
     new_boxes = np.array(new_boxes)
+    # new_boxes = np.array(st.session_state['result_dict'][st.session_state.image_name]['bboxes'])
 
     #Side length of PVC box in cm
     #TODO: Get actual number for this
     side_length_PVC = 50
     detected_boxes = boxes.xyxy.numpy()
+
+    # st.write(detected_boxes)
+    # st.write(new_boxes)
+    detected_boxes = np.floor(detected_boxes)
+    new_boxes = np.floor(new_boxes)
 
     for idx, [_, _, confidence, class_id, _] in enumerate(detections):
         if detected_boxes[idx] in new_boxes:
@@ -349,7 +363,6 @@ def get_all_file_paths(directory):
 def interactive_detections():
     #Grab the list of classes for this detection
     #Limited to the classes in the current model, can't add more
-    #TODO: This could be a hardcoded, or user updateable cached list
     label_list = list(st.session_state.results[2].values())
 
     bboxes = []
@@ -379,8 +392,22 @@ def interactive_detections():
                         height = 1080,
                         width = 1920)
     if new_labels is not None:
-        st.session_state['result_dict'][st.session_state.image_name]['bboxes'] = [v['bbox'] for v in new_labels]
         st.session_state['result_dict'][st.session_state.image_name]['labels'] = [v['label_id'] for v in new_labels]
+        #Do the reformatting here, only saving the boxes we want to keep
+        # st.session_state['result_dict'][st.session_state.image_name]['bboxes'] = [v['bbox'] for v in new_labels]
+        # new_boxes = [[b[0], b[1], b[2]+b[0], b[3]+b[1]] for b in st.session_state['result_dict'][st.session_state.image_name]['bboxes']]
+        # # new_boxes = [[b[0], b[1], b[2]+b[0], b[3]+b[1]] for b in new_labels['bbox']]
+        # for idx, b in enumerate(st.session_state.results[0].xyxy.numpy()):
+        #     if b[idx] in new_boxes:
+        #         #Keep it, and save the original, so no errors
+        #         st.session_state['result_dict'][st.session_state.image_name]['bboxes'].append(b[idx])
+        #     else:
+        #         st.write("Skipped!")
+
+
+        st.session_state['result_dict'][st.session_state.image_name]['bboxes'] = [v['bbox'] for v in new_labels]
+
+
         return True
     else:
         return False
