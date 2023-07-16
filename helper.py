@@ -33,23 +33,6 @@ def init_func():
     #remove detected images
     clear_folder(settings.RESULTS_DIR)
     clear_folder(settings.IMAGES_DIR)
-    
-
-
-# Segment Anything Model
-# Runs the segmenter, with proper data formatting
-def segment(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
-    global sam_predictor
-    sam_predictor.set_image(image)
-    result_masks = []
-    for box in xyxy:
-        masks, scores, logits = sam_predictor.predict(
-            box=box,
-            multimask_output=True
-        )
-        index = np.argmax(scores)
-        result_masks.append(masks[index])
-    return np.array(result_masks)
 
 
 # Checks that a new image is loaded
@@ -88,11 +71,6 @@ def redetect():
 def click_detect():
     st.session_state['detect'] = True
     
-
-
-def download_boxes(selected_boxes, img_name):
-    #Detections in YOLO format
-    return 
 
 
 # Predict Function
@@ -173,15 +151,12 @@ def results_math( _image, detect_type):
     # formatted boxes from manual annotator
     new_boxes = [[b[0], b[1], b[2]+b[0], b[3]+b[1]] for b in st.session_state['result_dict'][st.session_state.image_name]['bboxes']]
     new_boxes = np.array(new_boxes)
-    # new_boxes = np.array(st.session_state['result_dict'][st.session_state.image_name]['bboxes'])
 
     #Side length of PVC box in cm
     #TODO: Get actual number for this
     side_length_PVC = 50
-    detected_boxes = boxes.xyxy.numpy()
 
-    # st.write(detected_boxes)
-    # st.write(new_boxes)
+    detected_boxes = boxes.xyxy.numpy()
     detected_boxes = np.floor(detected_boxes)
     new_boxes = np.floor(new_boxes)
 
@@ -203,6 +178,18 @@ def results_math( _image, detect_type):
             class_id_list.append(classes[class_id])
             confidence_list.append(confidence)
             select_list.append(select)
+    #Add any boxes from manual annotator
+    for idx, box in enumerate(new_boxes):
+        if box not in detected_boxes:
+            if detect_type == "Objects + Segmentation":
+                result_list.append(0)
+                diameter_list.append(0)
+            #This is a new box
+            index_list.append(idx)
+            class_id_list.append(classes[st.session_state['result_dict'][st.session_state.image_name]['labels'][idx]])
+            confidence_list.append(1)
+            select_list.append(True)
+
     # Create DataFrame
     if detect_type == "Objects + Segmentation":
         data = {
@@ -393,18 +380,6 @@ def interactive_detections():
                         width = 1920)
     if new_labels is not None:
         st.session_state['result_dict'][st.session_state.image_name]['labels'] = [v['label_id'] for v in new_labels]
-        #Do the reformatting here, only saving the boxes we want to keep
-        # st.session_state['result_dict'][st.session_state.image_name]['bboxes'] = [v['bbox'] for v in new_labels]
-        # new_boxes = [[b[0], b[1], b[2]+b[0], b[3]+b[1]] for b in st.session_state['result_dict'][st.session_state.image_name]['bboxes']]
-        # # new_boxes = [[b[0], b[1], b[2]+b[0], b[3]+b[1]] for b in new_labels['bbox']]
-        # for idx, b in enumerate(st.session_state.results[0].xyxy.numpy()):
-        #     if b[idx] in new_boxes:
-        #         #Keep it, and save the original, so no errors
-        #         st.session_state['result_dict'][st.session_state.image_name]['bboxes'].append(b[idx])
-        #     else:
-        #         st.write("Skipped!")
-
-
         st.session_state['result_dict'][st.session_state.image_name]['bboxes'] = [v['bbox'] for v in new_labels]
 
 
@@ -414,15 +389,6 @@ def interactive_detections():
 
 
 def load_model(model_path):
-    """
-    Loads a YOLO object detection model from the specified model_path.
-
-    Parameters:
-        model_path (str): The path to the YOLO model file.
-
-    Returns:
-        A YOLO object detection model.
-    """
     model = YOLO(model_path)
     return model
 
