@@ -382,6 +382,39 @@ def preview_finished_capture(video_name):
         if video_bytes:
             st.video(video_bytes)
 
+def format_video_results(model, video_name):
+    video_results = st.session_state.video_data
+    
+    # Initialize empty lists to store data
+    index_list = []
+    class_id_list = []
+    count_list = []
+    select_list = []
+	
+	# [0, 132, 1, 0] {0: 'Sea Cucumber', 1: 'Sea Urchin', 2: 'Starfish', 3: 'Starfish-5'}
+    for idx in range(len(video_results)):
+        select = True
+        index_list.append(idx+1)
+        class_id_list.append(model.names[idx])
+        count_list.append(video_results[idx])
+        select_list.append(select)
+		
+    data = {
+        'Index': index_list,
+        'class_id': class_id_list,
+        'Count': count_list,
+        'Select': select_list
+    }
+    df = pd.DataFrame(data)
+
+    # Set class_id as the index
+    df.set_index('Index', inplace=True)
+
+    st.write("Video Tracking Results")
+    edited_df = st.data_editor(df, disabled=["Index", "class_id", "Count"])
+    
+    return edited_df
+
 def capture_uploaded_video(conf, model, fps,  source_vid, destination_path):
     """
     Plays a stored video file. Tracks and detects objects in real-time using the YOLOv8 object detection model.
@@ -473,6 +506,7 @@ def capture_uploaded_video(conf, model, fps,  source_vid, destination_path):
                 video_out.release()
                 if os.path.exists(destination_path):
                     print("Capture Done. " + str(Species_Counter) + ' ' + str(model.names) )
+                    st.session_state.video_data = Species_Counter
                     return True
             except Exception as e:
                 import traceback

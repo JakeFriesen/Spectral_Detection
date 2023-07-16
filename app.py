@@ -20,6 +20,8 @@ if 'initialized' not in st.session_state:
     st.session_state['initialized'] = False
 if 'results' not in st.session_state:
     st.session_state.results = []
+if 'video_data' not in st.session_state:
+    st.session_state.results = []
 if 'image_name' not in st.session_state:
     st.session_state.image_name = None
 if 'list' not in st.session_state:
@@ -209,9 +211,12 @@ with tab1:
                     st.session_state['detect'] = True
                     st.experimental_rerun()
             else:
-                import subprocess
-                subprocess.call(args=f"ffmpeg -y -i {des_path} -c:v libx264 {h264_path}".split(" "))
+                if not os.path.exists(h264_path):
+                    import subprocess
+                    subprocess.call(args=f"ffmpeg -y -i {des_path} -c:v libx264 {h264_path}".split(" "))
                 helper.preview_finished_capture(h264_path)
+                # Need to add .cvs download format
+                video_df = helper.format_video_results(model, h264_path)
         else:
             st.session_state['detect'] = False
 
