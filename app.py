@@ -179,4 +179,4 @@ with tab2:
     st.write("Visit the GitHub for this project: https://github.com/JakeFriesen/Spectral_Detection")
 
     st.header("How to Use")
-    st.write("Source: Image wiill detect species in a single image, video will detect for the whole image")
+    st.write("Source: Image will detect species in a single image, video will detect for the whole image")

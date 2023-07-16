@@ -337,10 +337,11 @@ def preview_video_upload(video_name,data):
     return video_name
 
 def preview_finished_capture(video_name):
-    with open(video_name, 'rb') as video_file:
-        video_bytes = video_file.read()
-    if video_bytes:
-        st.video(video_bytes)
+    if os.path.exists(video_name):
+        with open(video_name, 'rb') as video_file:
+            video_bytes = video_file.read()
+        if video_bytes:
+            st.video(video_bytes)
 
 def capture_uploaded_video(conf, model, fps,  source_vid, destination_path):
     """
@@ -368,7 +369,8 @@ def capture_uploaded_video(conf, model, fps,  source_vid, destination_path):
                 video_out = ffmpegcv.VideoWriter(destination_path, 'h264', vid_cap.fps*fps)
                 if video_out is None:
                     raise Exception("Error creating VideoWriter")
-                Urchins = [0,0]
+                Species_Counter = [0 for n in model.names]
+                Per_Counter =[0]
                 frame_count = 0
                 with vid_cap, video_out:
                     for frame in vid_cap:
@@ -376,51 +378,62 @@ def capture_uploaded_video(conf, model, fps,  source_vid, destination_path):
                         results = model.track(frame, conf=conf, iou=0.2, persist=True, tracker=tracker, device=settings.DEVICE)[0]
 
                         if results.boxes.id is not None:
+        
                             boxes = results.boxes.xyxy.cpu().numpy().astype(int)
                             ids = results.boxes.id.cpu().numpy().astype(int)
                             clss = results.boxes.cls.cpu().numpy().astype(int)
-                            confs = results.boxes.conf.cpu().numpy().astype(float)
+                            #confs = results.boxes.conf.cpu().numpy().astype(float)
 
-                            # Label Detection
+
                             for box_num  in range(len(boxes)):
-                                color =  (0, 255, 0)
-                                if clss[box_num] == 1:
-                                    if ids[box_num]>Urchins[1]:
-                                        if frame_count%10==0:
-                                            Urchins[0]=  Urchins[0] +1
-                                            Urchins[1] = ids[box_num]
-                                            color =  (255, 0, 255)
-                                        else:
-                                            color =  (163, 255, 163) 
+                            
+                                box = boxes[box_num]
+                                id = ids[box_num]
+                                cls = clss[box_num]
+                                #conf = confs[box_num]
 
-                                cv2.rectangle( 
-                                    frame,
-                                    (boxes[box_num][0], boxes[box_num][1]),
-                                    (boxes[box_num][2], boxes[box_num][3]),
-                                    color,
-                                    5)
+                                # use id as first array index
+                                # use class as second array index
+                                # use persistance counter as third array index
+
+
+                                color =  (0, 255, 0)
+                                while id >= len(Per_Counter)-1:
+                                    Per_Counter.append(0)
+
+                                Per_Counter[id] += 1
+
+                                if Per_Counter[id]< 10: 
+                                    color =  (163, 0, 163)
+                                elif Per_Counter[id] == 10:
+                                    Species_Counter[cls] += 1
+                                    color =  (255, 0, 255)
+
+
+                                cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), color, 2)
                                 cv2.putText(
                                     frame,
-                                    f" Id:{ids[box_num]} Class:{clss[box_num]}; Conf:{round(confs[box_num],2)} ",
-                                    (boxes[box_num][0], boxes[box_num][1]),
+                                    f" Id:{id}",# Class:{cls}; Conf:{round(conf,2)} ",
+                                    (box[0], box[1]),
                                     cv2.FONT_HERSHEY_SIMPLEX,
                                     2,
                                     color,
                                     2)
 
+
                         cv2.putText(
                             frame,
-                            f"Urchins: {Urchins[0]}",
-                            (20,90),
+                            f"Counter:{Species_Counter} -- Species:{model.names}",
+                            (60,100),
                             cv2.FONT_HERSHEY_SIMPLEX,
-                            5,
+                            3,
                             (0, 255, 255),
-                            2)    
+                            4)    
                         video_out.write(frame)
                 vid_cap.release()
                 video_out.release()
                 if os.path.exists(destination_path):
-                    print("Capture Done. " + str(Urchins[0]) + " of Urchins found.")
+                    print("Capture Done. " + str(Species_Counter) + ' ' + str(model.names) )
                     return True
             except Exception as e:
                 import traceback
