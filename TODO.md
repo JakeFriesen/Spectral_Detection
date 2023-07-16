@@ -25,8 +25,8 @@
     - [ ] More data from Romina (?) to make models better
     - [ ] Subclass model for sea stars (# of legs)
 - [ ] Manual addition of detections
-    - [ ] Using a python chart? Need to convert detection results 
-    - [ ] https://discuss.streamlit.io/t/new-component-streamlit-image-annotation-a-easy-way-to-annotate-images-using-streamlit/41146
+    - [x] https://discuss.streamlit.io/t/new-component-streamlit-image-annotation-a-easy-way-to-annotate-images-using-streamlit/41146
+    - [ ] Get redetection to override existing boxes (e.g. changing confidence should completely redo the boxes)
 - [ ] Documentation
     - [x] How to use in the app
     - [ ] Add it to the GitHub: https://github.com/JakeFriesen/Spectral_Detection

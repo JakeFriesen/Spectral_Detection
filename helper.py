@@ -60,12 +60,14 @@ def change_image(img_list):
 # Detect Does not have to be pressed again
 def repredict():
     st.session_state['predicted'] = False
+    st.session_state.segmented = False
 
 
 # Use this to repredict AFTER pressing detect
 def redetect():
     st.session_state['predicted'] = False
     st.session_state['detect'] = False
+    st.session_state.segmented = False
 
 # Detect Button 
 def click_detect():
@@ -78,7 +80,7 @@ def click_detect():
 def predict(_model, _uploaded_image, confidence, detect_type):
     boxes = []
     labels = []
-
+    col1, col2 = st.columns(2)
     # Detection Stage
     if st.session_state['predicted'] == False:
         res = _model.predict(_uploaded_image, conf=confidence)
@@ -94,7 +96,8 @@ def predict(_model, _uploaded_image, confidence, detect_type):
         
         box_annotator = sv.BoxAnnotator(text_scale=2, text_thickness=3, thickness=3, text_color=Color.white())
         annotated_image = box_annotator.annotate(scene=np.array(_uploaded_image), detections=detections, labels=labels)
-        st.image(annotated_image, caption='Detected Image', use_column_width=True)
+        with col1:
+            st.image(annotated_image, caption='Detected Image', use_column_width=True)
         st.session_state.results = [boxes, detections, classes, labels, annotated_image]
     #Interactive Detection Stage
     if interactive_detections():
@@ -104,9 +107,7 @@ def predict(_model, _uploaded_image, confidence, detect_type):
     #Segmentation Stage
     if detect_type == "Objects + Segmentation" and st.session_state.segmented == False:
         with st.spinner('Running Segmenter...'):
-            #Do the Segmentation
-            # new_boxes = [[b[0], b[1], b[2]+b[0], b[3]+b[1]] for b in st.session_state['result_dict'][st.session_state.image_name]['bboxes']]
-            # new_boxes = np.array(new_boxes)
+            #Show the Segmentation
             new_boxes = np.array(st.session_state['result_dict'][st.session_state.image_name]['bboxes'])
             new_boxes = np.floor(new_boxes)
             # Only choose the detection masks that have the same boxes as new_boxes
@@ -120,9 +121,8 @@ def predict(_model, _uploaded_image, confidence, detect_type):
             box_annotator = sv.BoxAnnotator()
             mask_annotator = sv.MaskAnnotator()
             annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
-            # annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
-            st.image(annotated_image, caption='Segmented Image', use_column_width=True)
-            # results_math(detections, _uploaded_image, classes)
+            with col2:
+                st.image(annotated_image, caption='Segmented Image', use_column_width=True)
             st.session_state.segmented = True
     st.session_state['predicted'] = True
     st.session_state.results[1] = detections  
@@ -145,7 +145,7 @@ def results_math( _image, detect_type):
     class_id_list = []
     result_list = []
     confidence_list = []
-    select_list = []
+    # select_list = []
     diameter_list = []
 
     # formatted boxes from manual annotator
@@ -172,12 +172,12 @@ def results_math( _image, detect_type):
 
                 result_list.append(result)
                 diameter_list.append(diameter)
-            select = True
+            # select = True
             # Append values to respective lists
             index_list.append(idx)
             class_id_list.append(classes[class_id])
             confidence_list.append(confidence)
-            select_list.append(select)
+            # select_list.append(select)
     #Add any boxes from manual annotator
     for idx, box in enumerate(new_boxes):
         if box not in detected_boxes:
@@ -188,7 +188,7 @@ def results_math( _image, detect_type):
             index_list.append(idx)
             class_id_list.append(classes[st.session_state['result_dict'][st.session_state.image_name]['labels'][idx]])
             confidence_list.append(1)
-            select_list.append(True)
+            # select_list.append(True)
 
     # Create DataFrame
     if detect_type == "Objects + Segmentation":
@@ -198,14 +198,14 @@ def results_math( _image, detect_type):
             'Area (cm^2)': result_list,
             'Diameter (cm)': diameter_list,
             'Confidence': confidence_list,
-            'Select': select_list
+            # 'Select': select_list
         }
     else:
         data = {
             'Index': index_list,
             'class_id': class_id_list,
             'Confidence': confidence_list,
-            'Select': select_list
+            # 'Select': select_list
         }
 
     df = pd.DataFrame(data)
@@ -240,25 +240,25 @@ def results_math( _image, detect_type):
     #Put data into the excel dataframe
     for index, row in edited_df.iterrows():
         #Only add data if row is selected
-        if(row['Select'] == True):
-            id = index
-            class_num = f"(#) " + id
-            #Increment number of class
-            dfex.loc[st.session_state.image_name, class_num] += 1
-            if detect_type == "Objects + Segmentation":
-                coverage = row['Area (cm^2)']
-                class_per = f"Total " + id + f" Area (cm^2) " 
-                #Add to total coverage
-                dfex.loc[st.session_state.image_name, class_per] += coverage
+        # if(row['Select'] == True):
+        id = index
+        class_num = f"(#) " + id
+        #Increment number of class
+        dfex.loc[st.session_state.image_name, class_num] += 1
+        if detect_type == "Objects + Segmentation":
+            coverage = row['Area (cm^2)']
+            class_per = f"Total " + id + f" Area (cm^2) " 
+            #Add to total coverage
+            dfex.loc[st.session_state.image_name, class_per] += coverage
 
-                #Get Average diameter - Take previous average, and use:
-                #  avg_new = ((n-1)*avg_old + d_new)/n
-                class_diameter = f"Average " + id + f" Diameter (cm)"
-                d_new = row['Diameter (cm)']
-                avg_old = dfex.loc[st.session_state.image_name, class_diameter]
-                n = dfex.loc[st.session_state.image_name, class_num]
-                avg_new = ((n-1)*avg_old + d_new)/n
-                dfex.loc[st.session_state.image_name, class_diameter] = avg_new
+            #Get Average diameter - Take previous average, and use:
+            #  avg_new = ((n-1)*avg_old + d_new)/n
+            class_diameter = f"Average " + id + f" Diameter (cm)"
+            d_new = row['Diameter (cm)']
+            avg_old = dfex.loc[st.session_state.image_name, class_diameter]
+            n = dfex.loc[st.session_state.image_name, class_num]
+            avg_new = ((n-1)*avg_old + d_new)/n
+            dfex.loc[st.session_state.image_name, class_diameter] = avg_new
 
     #Return Excel Dataframe
     return dfex
@@ -315,6 +315,7 @@ def substrate_selection():
     return res.loc[0]["Substrate"]
 
 def zip_images():
+    #TODO: Make a new image with the bounding boxes saved from manual annotator
     if not os.path.exists('Detected_Images'):
         os.mkdir('Detected_Images')
 

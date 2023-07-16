@@ -89,7 +89,6 @@ elif model_type == 'Upload':
 
 # Initializing Functions
 # Put here so that the sidebars and title show up while it loads
-#TODO: Deprecated, Remove 
 if st.session_state["initialized"] == False:
     with st.spinner('Initializing...'):
         helper.init_func()
@@ -130,8 +129,10 @@ with tab1:
                             use_column_width=True)
                 else:
                     uploaded_image = PIL.Image.open(source_img)
-                    st.image(source_img, caption="Uploaded Image",
-                            use_column_width=True)
+                    if not st.session_state['detect']:
+                        st.image(source_img, caption="Uploaded Image",
+                                use_column_width=True)
+
             except Exception as ex:
                 st.error("Error occurred while opening the image.")
                 st.error(ex)
@@ -147,14 +148,14 @@ with tab1:
                 #Uploaded image
                 st.sidebar.button('Detect', on_click=helper.click_detect)
 
-                #If Detection is clicked
-                if st.session_state['detect']:
-                    #Perform the prediction
-                    try:
-                        helper.predict(model, uploaded_image, confidence, detect_type)
-                    except Exception as ex:
-                        st.write("Upload an image or select a model to run detection")
-                        st.write(ex)
+        #If Detection is clicked
+        if st.session_state['detect'] and source_img is not None:
+            #Perform the prediction
+            try:
+                helper.predict(model, uploaded_image, confidence, detect_type)
+            except Exception as ex:
+                st.write("Upload an image or select a model to run detection")
+                st.write(ex)
         #If Detection is clicked
         if st.session_state['detect']:
             #Show the detection results
@@ -197,8 +198,6 @@ with tab1:
 
     elif source_radio == settings.VIDEO:
         st.write("Under Construction...")
-        helper.redetect()
-        # helper.play_stored_video(confidence, model)
 
     else:
         st.error("Please select a valid source type!")
