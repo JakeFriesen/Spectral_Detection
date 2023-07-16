@@ -127,7 +127,6 @@ def predict(_model, _uploaded_image, confidence, detect_type):
     if detect_type == "Objects + Segmentation" and st.session_state.segmented == False:
         with st.spinner('Running Segmenter...'):
             #Do the Segmentation
-            # st.write(detections.xyxy)
             new_boxes = [[b[0], b[1], b[2]+b[0], b[3]+b[1]] for b in st.session_state['result_dict'][st.session_state.image_name]['bboxes']]
             new_boxes = np.array(new_boxes)
 
@@ -145,7 +144,7 @@ def predict(_model, _uploaded_image, confidence, detect_type):
 
 #Results Calculations
 def results_math( _image, detect_type):
-    _, detections, classes ,_ ,_ = st.session_state.results
+    boxes, detections, classes ,_ ,_ = st.session_state.results
 
     if detect_type == "Objects + Segmentation":
         segmentation_mask = detections.mask
@@ -163,27 +162,33 @@ def results_math( _image, detect_type):
     select_list = []
     diameter_list = []
 
+    # formatted boxes from manual annotator
+    new_boxes = [[b[0], b[1], b[2]+b[0], b[3]+b[1]] for b in st.session_state['result_dict'][st.session_state.image_name]['bboxes']]
+    new_boxes = np.array(new_boxes)
+
     #Side length of PVC box in cm
     #TODO: Get actual number for this
     side_length_PVC = 50
+    detected_boxes = boxes.xyxy.numpy()
 
     for idx, [_, _, confidence, class_id, _] in enumerate(detections):
-        if detect_type == "Objects + Segmentation":
-            #Get % of non white pixels inside box (assumed box height is height of image)
-            percentage_of_box = np.sum(new_images[idx] != 255) / (new_images[idx].shape[0]*new_images[idx].shape[0]) * 100
-            #Area of mask is area of PVC * percentage_of_box / 100
-            result = side_length_PVC * side_length_PVC * percentage_of_box / 100
-            #Calculate diameter
-            diameter = 2 * np.sqrt(result / np.pi)
+        if detected_boxes[idx] in new_boxes:
+            if detect_type == "Objects + Segmentation":
+                #Get % of non white pixels inside box (assumed box height is height of image)
+                percentage_of_box = np.sum(new_images[idx] != 255) / (new_images[idx].shape[0]*new_images[idx].shape[0]) * 100
+                #Area of mask is area of PVC * percentage_of_box / 100
+                result = side_length_PVC * side_length_PVC * percentage_of_box / 100
+                #Calculate diameter
+                diameter = 2 * np.sqrt(result / np.pi)
 
-            result_list.append(result)
-            diameter_list.append(diameter)
-        select = True
-        # Append values to respective lists
-        index_list.append(idx)
-        class_id_list.append(classes[class_id])
-        confidence_list.append(confidence)
-        select_list.append(select)
+                result_list.append(result)
+                diameter_list.append(diameter)
+            select = True
+            # Append values to respective lists
+            index_list.append(idx)
+            class_id_list.append(classes[class_id])
+            confidence_list.append(confidence)
+            select_list.append(select)
     # Create DataFrame
     if detect_type == "Objects + Segmentation":
         data = {
@@ -357,28 +362,6 @@ def interactive_detections():
             bboxes.append([top_coord[0], top_coord[1], box[2], box[3]])
         for detections in st.session_state.results[1]:
             labels.append(int(detections[3])) 
-
-    if 'result_dict' not in st.session_state:
-        result_dict = {}
-        st.session_state['result_dict'] = result_dict.copy()
-    if st.session_state.image_name not in st.session_state.result_dict:
-        st.session_state['result_dict'][st.session_state.image_name] = {'bboxes': bboxes,'labels':labels}
-        
-
-    target_image_path = Path(settings.IMAGES_DIR , st.session_state.image_name)
-    new_labels = detection(image_path=target_image_path, 
-                        bboxes=st.session_state['result_dict'][st.session_state.image_name]['bboxes'], 
-                        labels=st.session_state['result_dict'][st.session_state.image_name]['labels'], 
-                        label_list=label_list, 
-                        key=st.session_state.image_name,
-                        height = 1080,
-                        width = 1920)
-    if new_labels is not None:
-        st.session_state['result_dict'][st.session_state.image_name]['bboxes'] = [v['bbox'] for v in new_labels]
-        st.session_state['result_dict'][st.session_state.image_name]['labels'] = [v['label_id'] for v in new_labels]
-        return True
-    else:
-        return False
 
     if 'result_dict' not in st.session_state:
         result_dict = {}

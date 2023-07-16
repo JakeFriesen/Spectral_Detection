@@ -31,6 +31,8 @@ if 'img_num' not in st.session_state:
     st.session_state.img_num = 0
 if 'next_img' not in st.session_state:
     st.session_state.next_img = False
+if 'segmented' not in st.session_state:
+    st.session_state.segmented = False
 
 # Setting page layout
 st.set_page_config(
@@ -158,10 +160,10 @@ with tab1:
             #Show the detection results
             with st.spinner("Calculating Stats..."):
                 selected_df = None
-                try:
-                    selected_df = helper.results_math(uploaded_image, detect_type)
-                except:
-                    st.write("Upload an image first")
+                # try:
+                selected_df = helper.results_math(uploaded_image, detect_type)
+                # except:
+                #     st.write("Upload an image first")
                 
             #Download Button
             list_btn = st.button('Add to List')
