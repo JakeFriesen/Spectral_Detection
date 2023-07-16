@@ -195,7 +195,7 @@ with tab1:
 
     elif source_radio == settings.VIDEO:
         source_vid = st.sidebar.file_uploader(
-            "Upload a Video...", type=("mp4"), key = "src_vid")
+            "Upload a Video...", type=("mp4"), key = "src_vid")#ds
         interval = st.sidebar.slider("Select Capture Rate:", 0.25, 4.00, 1.00, 0.25)
         if source_vid is not None:
             vid_path = 'preprocess_temp.mp4'
@@ -203,9 +203,17 @@ with tab1:
             h264_path = 'upload_h264.mp4'
             bytes_data = source_vid.getvalue()
             video_path = helper.preview_video_upload(vid_path, bytes_data)
-            Done = helper.capture_uploaded_video(confidence, model, interval, vid_path, h264_path)
-            if (True == Done):
+            if not st.session_state['detect']:
+                Done = helper.capture_uploaded_video(confidence, model, interval, vid_path, des_path)
+                if (True == Done):
+                    st.session_state['detect'] = True
+                    st.experimental_rerun()
+            else:
+                import subprocess
+                subprocess.call(args=f"ffmpeg -y -i {des_path} -c:v libx264 {h264_path}".split(" "))
                 helper.preview_finished_capture(h264_path)
+        else:
+            st.session_state['detect'] = False
 
     else:
         st.error("Please select a valid source type!")

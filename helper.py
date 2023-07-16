@@ -463,9 +463,9 @@ def capture_uploaded_video(conf, model, fps,  source_vid, destination_path):
                         cv2.putText(
                             frame,
                             f"Counter:{Species_Counter} -- Species:{model.names}",
-                            (60,100),
+                            (40,100),
                             cv2.FONT_HERSHEY_SIMPLEX,
-                            3,
+                            2,
                             (0, 255, 255),
                             4)    
                         video_out.write(frame)
@@ -478,4 +478,4 @@ def capture_uploaded_video(conf, model, fps,  source_vid, destination_path):
                 import traceback
                 st.sidebar.error("Error loading video: " + str(e))
                 traceback.print_exc()
-    return True
+    return False
