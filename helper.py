@@ -106,24 +106,25 @@ def predict(_model, _uploaded_image, confidence, detect_type):
 
     #Segmentation Stage
     if detect_type == "Objects + Segmentation" and st.session_state.segmented == False:
-        with st.spinner('Running Segmenter...'):
-            #Show the Segmentation
-            new_boxes = np.array(st.session_state['result_dict'][st.session_state.image_name]['bboxes'])
-            new_boxes = np.floor(new_boxes)
-            # Only choose the detection masks that have the same boxes as new_boxes
-            cur_boxes = st.session_state.results[0].xyxy.numpy()
-            cur_boxes = np.floor(cur_boxes)
-            for idx, [_, _, confidence, class_id, _] in enumerate(detections):
-                if cur_boxes[idx] not in new_boxes:
-                    detections.mask[idx] = None
+        with col2:
+            with st.spinner('Running Segmenter...'):
+                #Show the Segmentation
+                new_boxes = np.array(st.session_state['result_dict'][st.session_state.image_name]['bboxes'])
+                new_boxes = np.floor(new_boxes)
+                # Only choose the detection masks that have the same boxes as new_boxes
+                cur_boxes = st.session_state.results[0].xyxy.numpy()
+                cur_boxes = np.floor(cur_boxes)
+                for idx, [_, _, confidence, class_id, _] in enumerate(detections):
+                    if cur_boxes[idx] not in new_boxes:
+                        detections.mask[idx] = None
 
-            # annotate image with detections
-            box_annotator = sv.BoxAnnotator()
-            mask_annotator = sv.MaskAnnotator()
-            annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
-            with col2:
+                # annotate image with detections
+                box_annotator = sv.BoxAnnotator()
+                mask_annotator = sv.MaskAnnotator()
+                annotated_image = mask_annotator.annotate(scene=np.array(_uploaded_image), detections=detections)
+                
                 st.image(annotated_image, caption='Segmented Image', use_column_width=True)
-            st.session_state.segmented = True
+                st.session_state.segmented = True
     st.session_state['predicted'] = True
     st.session_state.results[1] = detections  
     
@@ -152,9 +153,9 @@ def results_math( _image, detect_type):
     new_boxes = [[b[0], b[1], b[2]+b[0], b[3]+b[1]] for b in st.session_state['result_dict'][st.session_state.image_name]['bboxes']]
     new_boxes = np.array(new_boxes)
 
-    #Side length of PVC box in cm
-    #TODO: Get actual number for this
-    side_length_PVC = 50
+    if st.session_state.drop_quadrat == "Area (Drop Quadrat)":
+        #Side length of PVC box in cm - Taken from the user
+        side_length_PVC = st.session_state.side_length
 
     detected_boxes = boxes.xyxy.numpy()
     detected_boxes = np.floor(detected_boxes)
@@ -163,15 +164,18 @@ def results_math( _image, detect_type):
     for idx, [_, _, confidence, class_id, _] in enumerate(detections):
         if detected_boxes[idx] in new_boxes:
             if detect_type == "Objects + Segmentation":
-                #Get % of non white pixels inside box (assumed box height is height of image)
-                percentage_of_box = np.sum(new_images[idx] != 255) / (new_images[idx].shape[0]*new_images[idx].shape[0]) * 100
-                #Area of mask is area of PVC * percentage_of_box / 100
-                result = side_length_PVC * side_length_PVC * percentage_of_box / 100
-                #Calculate diameter
-                diameter = 2 * np.sqrt(result / np.pi)
-
+                if st.session_state.drop_quadrat == "Area (Drop Quadrat)":
+                    #Get % of non white pixels inside box (assumed box height is height of image)
+                    percentage_of_box = np.sum(new_images[idx] != 255) / (new_images[idx].shape[0]*new_images[idx].shape[0]) * 100
+                    #Area of mask is area of PVC * percentage_of_box / 100
+                    result = side_length_PVC * side_length_PVC * percentage_of_box / 100
+                    #Calculate diameter
+                    diameter = 2 * np.sqrt(result / np.pi)
+                    diameter_list.append(diameter)
+                elif st.session_state.drop_quadrat == "Percentage":
+                    #Just percentage, no diameter
+                    result = np.sum(new_images[idx] != 255) / (new_images[idx].shape[0]*new_images[idx].shape[1]) * 100
                 result_list.append(result)
-                diameter_list.append(diameter)
             # select = True
             # Append values to respective lists
             index_list.append(idx)
@@ -183,7 +187,8 @@ def results_math( _image, detect_type):
         if box not in detected_boxes:
             if detect_type == "Objects + Segmentation":
                 result_list.append(0)
-                diameter_list.append(0)
+                if st.session_state.drop_quadrat == "Area (Drop Quadrat)":
+                    diameter_list.append(0)
             #This is a new box
             index_list.append(idx)
             class_id_list.append(classes[st.session_state['result_dict'][st.session_state.image_name]['labels'][idx]])
@@ -192,20 +197,26 @@ def results_math( _image, detect_type):
 
     # Create DataFrame
     if detect_type == "Objects + Segmentation":
-        data = {
-            'Index': index_list,
-            'class_id': class_id_list,
-            'Area (cm^2)': result_list,
-            'Diameter (cm)': diameter_list,
-            'Confidence': confidence_list,
-            # 'Select': select_list
-        }
+        if st.session_state.drop_quadrat == "Area (Drop Quadrat)":
+            data = {
+                'Index': index_list,
+                'class_id': class_id_list,
+                'Area (cm^2)': result_list,
+                'Diameter (cm)': diameter_list,
+                'Confidence': confidence_list
+            }
+        elif st.session_state.drop_quadrat == "Percentage":
+            data = {
+                'Index': index_list,
+                'class_id': class_id_list,
+                'Coverage (%)': result_list,
+                'Confidence': confidence_list
+            }
     else:
         data = {
             'Index': index_list,
             'class_id': class_id_list,
-            'Confidence': confidence_list,
-            # 'Select': select_list
+            'Confidence': confidence_list
         }
 
     df = pd.DataFrame(data)
@@ -215,7 +226,10 @@ def results_math( _image, detect_type):
 
     st.write("Image Detection Results")
     if detect_type == "Objects + Segmentation":
-        edited_df = st.data_editor(df, disabled=["Index", "class_id", "Area (cm^2)", "Diameter (cm)", "Confidence"])
+        if st.session_state.drop_quadrat == "Area (Drop Quadrat)":
+            edited_df = st.data_editor(df, disabled=["Index", "class_id", "Area (cm^2)", "Diameter (cm)", "Confidence"])
+        else:
+            edited_df = st.data_editor(df, disabled=["Index", "class_id", "Coverage (%)", "Confidence"])
     else:
         edited_df = st.data_editor(df, disabled=["Index", "class_id", "Confidence"])
     
@@ -229,10 +243,15 @@ def results_math( _image, detect_type):
         col1 = f"(#) " + classes[cl]
         excel[col1] = 0
         if detect_type == "Objects + Segmentation":
-            col2 = f"Total " + classes[cl] + f" Area (cm^2) " 
-            col3 = f"Average " + classes[cl] + f" Diameter (cm)"
-            excel[col2] = 0.00
-            excel[col3] = 0.00
+            if st.session_state.drop_quadrat == "Area (Drop Quadrat)":
+                col2 = f"Total " + classes[cl] + f" Area (cm^2) " 
+                col3 = f"Average " + classes[cl] + f" Diameter (cm)"
+                excel[col2] = 0.00
+                excel[col3] = 0.00
+            else:
+                col2 = classes[cl] + f" Coverage(%)" 
+                excel[col2] = 0.00
+            
     
     excel['Substrate'] = substrate
     dfex = pd.DataFrame(excel, index=[st.session_state.image_name])
@@ -246,19 +265,25 @@ def results_math( _image, detect_type):
         #Increment number of class
         dfex.loc[st.session_state.image_name, class_num] += 1
         if detect_type == "Objects + Segmentation":
-            coverage = row['Area (cm^2)']
-            class_per = f"Total " + id + f" Area (cm^2) " 
-            #Add to total coverage
-            dfex.loc[st.session_state.image_name, class_per] += coverage
+            if st.session_state.drop_quadrat == "Area (Drop Quadrat)":
+                coverage = row['Area (cm^2)']
+                class_per = f"Total " + id + f" Area (cm^2) " 
+                #Add to total coverage
+                dfex.loc[st.session_state.image_name, class_per] += coverage
 
-            #Get Average diameter - Take previous average, and use:
-            #  avg_new = ((n-1)*avg_old + d_new)/n
-            class_diameter = f"Average " + id + f" Diameter (cm)"
-            d_new = row['Diameter (cm)']
-            avg_old = dfex.loc[st.session_state.image_name, class_diameter]
-            n = dfex.loc[st.session_state.image_name, class_num]
-            avg_new = ((n-1)*avg_old + d_new)/n
-            dfex.loc[st.session_state.image_name, class_diameter] = avg_new
+                #Get Average diameter - Take previous average, and use:
+                #  avg_new = ((n-1)*avg_old + d_new)/n
+                class_diameter = f"Average " + id + f" Diameter (cm)"
+                d_new = row['Diameter (cm)']
+                avg_old = dfex.loc[st.session_state.image_name, class_diameter]
+                n = dfex.loc[st.session_state.image_name, class_num]
+                avg_new = ((n-1)*avg_old + d_new)/n
+                dfex.loc[st.session_state.image_name, class_diameter] = avg_new
+            else:
+                coverage = row['Coverage (%)']
+                class_per = id + f" Coverage(%)" 
+                #Add to total coverage
+                dfex.loc[st.session_state.image_name, class_per] += coverage
 
     #Return Excel Dataframe
     return dfex
@@ -356,6 +381,12 @@ def interactive_detections():
     bboxes = []
     labels = []
 
+    if 'result_dict' not in st.session_state:
+        result_dict = {}
+        st.session_state['result_dict'] = result_dict.copy()
+    if st.session_state.image_name not in st.session_state.result_dict:
+        st.session_state['result_dict'][st.session_state.image_name] = {'bboxes': bboxes,'labels':labels}
+
     #This is the first run, take the results from the initial detection
     if st.session_state['predicted'] == False:
         for box in st.session_state.results[0].xywh.numpy():
@@ -363,18 +394,15 @@ def interactive_detections():
             bboxes.append([top_coord[0], top_coord[1], box[2], box[3]])
         for detections in st.session_state.results[1]:
             labels.append(int(detections[3])) 
-
-    if 'result_dict' not in st.session_state:
-        result_dict = {}
-        st.session_state['result_dict'] = result_dict.copy()
-    if st.session_state.image_name not in st.session_state.result_dict:
         st.session_state['result_dict'][st.session_state.image_name] = {'bboxes': bboxes,'labels':labels}
-        
+    else:
+        bboxes = st.session_state['result_dict'][st.session_state.image_name]['bboxes']
+        labels = st.session_state['result_dict'][st.session_state.image_name]['labels']
 
     target_image_path = Path(settings.IMAGES_DIR , st.session_state.image_name)
     new_labels = detection(image_path=target_image_path, 
-                        bboxes=st.session_state['result_dict'][st.session_state.image_name]['bboxes'], 
-                        labels=st.session_state['result_dict'][st.session_state.image_name]['labels'], 
+                        bboxes=bboxes, 
+                        labels=labels, 
                         label_list=label_list, 
                         key=st.session_state.image_name,
                         height = 1080,
@@ -382,8 +410,6 @@ def interactive_detections():
     if new_labels is not None:
         st.session_state['result_dict'][st.session_state.image_name]['labels'] = [v['label_id'] for v in new_labels]
         st.session_state['result_dict'][st.session_state.image_name]['bboxes'] = [v['bbox'] for v in new_labels]
-
-
         return True
     else:
         return False

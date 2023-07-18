@@ -33,6 +33,10 @@ if 'next_img' not in st.session_state:
     st.session_state.next_img = False
 if 'segmented' not in st.session_state:
     st.session_state.segmented = False
+if 'side_length' not in st.session_state:
+    st.session_state.side_length = 0
+if "drop_quadrat" not in st.session_state:
+    st.session_state.drop_quadrat = "Percentage"
 
 # Setting page layout
 st.set_page_config(
@@ -85,7 +89,10 @@ elif model_type == 'Upload':
     except Exception as ex:
         st.sidebar.write("No Model Uploaded Yet...")
         # st.error(ex)
-
+# Option for Drop Quadrat selection
+st.sidebar.radio("Choose Results Formatting", ["Percentage", "Area (Drop Quadrat)"], key = "drop_quadrat")
+if st.session_state.drop_quadrat == "Area (Drop Quadrat)":
+    st.sidebar.number_input("Side Length of Drop Quadrat (cm)", value = 0, key= 'side_length')
 
 # Initializing Functions
 # Put here so that the sidebars and title show up while it loads

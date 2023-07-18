@@ -20,13 +20,10 @@
     - [x] Area calculation inside pvc pipe (need dimensions)
     - [x] Diameter of urchins, stars? (need dimensions)
     - [x] Spreadsheet formatting
-- [ ] Model (Matt)
+- [X] Model (Matt)
     - [x] Better kelp model
-    - [ ] More data from Romina (?) to make models better
-    - [ ] Subclass model for sea stars (# of legs)
-- [ ] Manual addition of detections
+- [X] Manual addition of detections
     - [x] https://discuss.streamlit.io/t/new-component-streamlit-image-annotation-a-easy-way-to-annotate-images-using-streamlit/41146
-    - [ ] Get redetection to override existing boxes (e.g. changing confidence should completely redo the boxes)
 - [ ] Documentation
     - [x] How to use in the app
     - [ ] Add it to the GitHub: https://github.com/JakeFriesen/Spectral_Detection
@@ -37,14 +34,13 @@ Week of July 10th:
 - [x] Get Area results calculated (Estimated numbers for now)
     - [x] Area covered by each species (cm^2)
     - [x] Diameter of everything (no discrimination for now)
-- [ ] Manual Detection Working
-    - [ ] Get the detection bounding boxes to show in the live editor
-    - [ ] Get the list of resulting bounding boxes into a useable format at the end (for segmentation)
-    - [ ] Remove selection in the results list
+- [X] Manual Detection Working
+    - [x] Get the detection bounding boxes to show in the live editor
+    - [X] Get the list of resulting bounding boxes into a useable format at the end (for segmentation)
+    - [X] Remove selection in the results list
 - [x] Get YOLO segmentation masks working
     - [x] Temporarily remove SAM segmentation
     - [x] Use mask results in the same way as SAM
-    - [ ] Check if model can output segmentation? Or up to user?
 - [x] Saving Result Images
     - [x] Add to List should also save the detection/segmentation image (with updated selections)
     - [x] Extra button to download the images
@@ -52,7 +48,21 @@ Week of July 10th:
     - [x] Remove SAM model from GitHub, add description about where to add model (unless unused at this point)
     - [x] Talk to Sam about other issues he found when installing it (pip version?)
     - [ ] Remove unused requirements
-- [ ] Final Report
-    - [ ] Get a rough draft started with bullet points in all sections
-- [ ] Website (Sam)
-- [ ] Poster (Paul)
+
+
+
+## Final Stretch Stuff
+- [ ] Manual Annotation fixing
+    - [ ] Get redetection to override existing boxes (e.g. changing confidence should completely redo the boxes)
+    - [ ] Test reclassifying boxes
+- [x] Radio buttons for "Drop Quadrat" or not
+    - [x] Text input for PVC side length
+    - [x] Change results to percentage when not "Drop Quadrat"
+- [ ] Add classes to manual annotator - Text input to update labels list (cached?)
+- [ ] Multiple confidence levels for the model (hardcoded)
+- [ ] Formatted detection data dump for future trained models (must include manual annotator data!)
+- [ ] Integrate Video stuff into main - get hosted on web site
+- [ ] Documentation
+    - [ ] Update "About" Tab
+    - [ ] Get Installation Guide finished and accurate (incl. video requirements)
+    - [ ] Remove unused requirements from requirements.txt
