@@ -179,7 +179,7 @@ def results_math( _image, detect_type):
             # select = True
             # Append values to respective lists
             index_list.append(idx)
-            class_id_list.append(classes[class_id])
+            class_id_list.append(st.session_state.class_list[class_id])
             confidence_list.append(confidence)
             # select_list.append(select)
     #Add any boxes from manual annotator
@@ -191,7 +191,7 @@ def results_math( _image, detect_type):
                     diameter_list.append(0)
             #This is a new box
             index_list.append(idx)
-            class_id_list.append(classes[st.session_state['result_dict'][st.session_state.image_name]['labels'][idx]])
+            class_id_list.append(st.session_state.class_list[st.session_state['result_dict'][st.session_state.image_name]['labels'][idx]])
             confidence_list.append(1)
             # select_list.append(True)
 
@@ -239,17 +239,17 @@ def results_math( _image, detect_type):
     #Making the dataframe for an excel sheet
     excel = {}
     excel['Image'] = st.session_state.image_name
-    for cl in classes:
-        col1 = f"(#) " + classes[cl]
+    for cl in st.session_state.class_list:
+        col1 = f"(#) " + cl
         excel[col1] = 0
         if detect_type == "Objects + Segmentation":
             if st.session_state.drop_quadrat == "Area (Drop Quadrat)":
-                col2 = f"Total " + classes[cl] + f" Area (cm^2) " 
-                col3 = f"Average " + classes[cl] + f" Diameter (cm)"
+                col2 = f"Total " + cl + f" Area (cm^2) " 
+                col3 = f"Average " + cl + f" Diameter (cm)"
                 excel[col2] = 0.00
                 excel[col3] = 0.00
             else:
-                col2 = classes[cl] + f" Coverage(%)" 
+                col2 = cl + f" Coverage(%)" 
                 excel[col2] = 0.00
             
     
@@ -375,8 +375,12 @@ def get_all_file_paths(directory):
 
 def interactive_detections():
     #Grab the list of classes for this detection
-    #Limited to the classes in the current model, can't add more
-    label_list = list(st.session_state.results[2].values())
+    label_list = st.session_state.class_list + list(st.session_state.results[2].values())
+    if st.session_state.manual_class != "":
+        label_list += [st.session_state.manual_class]
+    #Remove duplicates
+    label_list = list(dict.fromkeys(label_list))
+    st.session_state.class_list = label_list
 
     bboxes = []
     labels = []

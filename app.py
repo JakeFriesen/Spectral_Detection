@@ -37,6 +37,10 @@ if 'side_length' not in st.session_state:
     st.session_state.side_length = 0
 if "drop_quadrat" not in st.session_state:
     st.session_state.drop_quadrat = "Percentage"
+if 'manual_class' not in st.session_state:
+    st.session_state.manual_class = ""
+if 'class_list' not in st.session_state:
+    st.session_state.class_list = []
 
 # Setting page layout
 st.set_page_config(
@@ -164,24 +168,33 @@ with tab1:
                 st.write("Upload an image or select a model to run detection")
                 st.write(ex)
         #If Detection is clicked
-        if st.session_state['detect']:
-            #Show the detection results
-            with st.spinner("Calculating Stats..."):
-                selected_df = None
-                # try:
-                selected_df = helper.results_math(uploaded_image, detect_type)
-                # except:
-                #     st.write("Upload an image first")
-                
-            #Download Button
-            list_btn = st.button('Add to List')
-            if list_btn and (selected_df is not None):
-                helper.add_to_list(selected_df)
-                st.session_state.next_img = True
-                #This gets the update to be forced, removing the double detect issue.
-                #It does look a bit weird though, consider removing
-                st.experimental_rerun()
-    
+        bcol1, bcol2 = st.columns(2)
+        with bcol1:
+            if st.session_state['detect']:
+                #Show the detection results
+                with st.spinner("Calculating Stats..."):
+                    selected_df = None
+                    # try:
+                    selected_df = helper.results_math(uploaded_image, detect_type)
+                    # except:
+                    #     st.write("Upload an image first")
+                    
+                #Download Button
+                list_btn = st.button('Add to List')
+                if list_btn and (selected_df is not None):
+                    helper.add_to_list(selected_df)
+                    st.session_state.next_img = True
+                    #This gets the update to be forced, removing the double detect issue.
+                    #It does look a bit weird though, consider removing
+                    st.experimental_rerun()
+        with bcol2:
+            if st.session_state['detect']:
+                st.text_input("Enter New Manual Classes", 
+                              value="", 
+                              help="You can enter more classes here which can be used with the manual annotator. They will not be automatically detected.", 
+                              key= 'manual_class')
+
+
         #Always showing list if something is in it
         if st.session_state.add_to_list:
             st.write("Image List:")
