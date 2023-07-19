@@ -85,7 +85,6 @@ def predict(_model, _uploaded_image, confidence, detect_type):
     if st.session_state['predicted'] == False:
         res = _model.predict(_uploaded_image, conf=confidence)
         boxes = res[0].boxes
-        masks = res[0].masks
         detections = sv.Detections.from_yolov8(res[0])
         classes = res[0].names
         if(detections is not None):
@@ -348,7 +347,6 @@ def substrate_selection():
     return res.loc[0]["Substrate"]
 
 def zip_images():
-    #TODO: Make a new image with the bounding boxes saved from manual annotator
     if not os.path.exists('Detected_Images'):
         os.mkdir('Detected_Images')
 
@@ -366,7 +364,6 @@ def zip_images():
                             mime='text/zip')
 
 def get_all_file_paths(directory):
-  
     # initializing empty file paths list
     file_paths = []
   
@@ -416,7 +413,7 @@ def interactive_detections():
                         bboxes=bboxes, 
                         labels=labels, 
                         label_list=label_list, 
-                        key=st.session_state.image_name,
+                        # key=st.session_state.image_name,
                         height = 1080,
                         width = 1920)
     if new_labels is not None:

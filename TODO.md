@@ -53,7 +53,7 @@ Week of July 10th:
 
 ## Final Stretch Stuff
 - [ ] Manual Annotation fixing
-    - [ ] Get redetection to override existing boxes (e.g. changing confidence should completely redo the boxes)
+    - [x] Get redetection to override existing boxes (e.g. changing confidence should completely redo the boxes)
     - [ ] Test reclassifying boxes
 - [x] Radio buttons for "Drop Quadrat" or not
     - [x] Text input for PVC side length
@@ -66,4 +66,3 @@ Week of July 10th:
 - [ ] Documentation
     - [ ] Update "About" Tab
     - [ ] Get Installation Guide finished and accurate (incl. video requirements)
-    - [ ] Remove unused requirements from requirements.txt
