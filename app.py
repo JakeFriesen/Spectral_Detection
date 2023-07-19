@@ -197,12 +197,13 @@ with tab1:
 
     elif source_radio == settings.VIDEO:
         source_vid = st.sidebar.file_uploader(
-            "Upload a Video...", type=("mp4"), key = "src_vid")#ds
+            "Upload a Video...", type=("mp4"), key = "src_vid")
         interval = st.sidebar.slider("Select Capture Rate:", 0.25, 4.00, 1.00, 0.25)
         if source_vid is not None:
-            vid_path = 'preprocess_temp.mp4'
+            source_name = str(Path(source_vid.name).stem)
+            vid_path = 'preprocess_' + source_name + '.mp4'
             des_path = 'upload.mp4'
-            h264_path = 'upload_h264.mp4'
+            h264_path = 'Detected_Videos\\' + source_name + '_h264.mp4'
             bytes_data = source_vid.getvalue()
             video_path = helper.preview_video_upload(vid_path, bytes_data)
             if not st.session_state['detect']:
@@ -215,10 +216,32 @@ with tab1:
                     import subprocess
                     subprocess.call(args=f"ffmpeg -y -i {des_path} -c:v libx264 {h264_path}".split(" "))
                 helper.preview_finished_capture(h264_path)
-                # Need to add .cvs download format
                 video_df = helper.format_video_results(model, h264_path)
+                list_btn = st.button('Add to List')
+                if list_btn and (video_df is not None):
+                    helper.add_to_listv(video_df)
+                    st.experimental_rerun()
         else:
             st.session_state['detect'] = False
+        
+        if st.session_state.add_to_list:
+            st.write("Video List:")
+            st.dataframe(st.session_state.list)
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                try:
+                    st.download_button( label = "Download Results", 
+                                    help = "Download a csv with the saved Video results",
+                                    data=st.session_state.list.to_csv().encode('utf-8'), 
+                                    file_name="Detection_Results.csv", 
+                                    mime='text/csv')
+                except:
+                    st.write("Add items to the list to download them")
+            with col2:
+                helper.zip_video()
+            with col3:
+                if st.button("Clear List", help="Clear the saved data"):
+                    helper.clear_image_list()
 
     else:
         st.error("Please select a valid source type!")

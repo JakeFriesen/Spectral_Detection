@@ -276,12 +276,20 @@ def add_to_list(data):
     cv2.imwrite(str(image_path), cv2.cvtColor(st.session_state.results[4], cv2.COLOR_RGB2BGR))
     #Make the zip here, delete the older zip
 
+def add_to_listv(data):
+    if st.session_state.list is not None:
+
+        frames = [st.session_state.list, data]
+        st.session_state.list = pd.concat(frames)
+    else:
+        st.session_state.list = data
+    st.session_state.add_to_list = True
 
 def clear_image_list():
     st.session_state.list = None
     st.session_state.add_to_list = False
+    #clear_folder(settings.RESULTS_DIR)
     st.experimental_rerun()
-    clear_folder(settings.RESULTS_DIR)
 
 def substrate_selection():
     data_df = pd.DataFrame(
@@ -326,6 +334,23 @@ def zip_images():
                             file_name = "Detection_Images.zip",
                             mime='text/zip')
 
+def zip_video():
+    if not os.path.exists('Detected_Videos'):
+        os.mkdir('Detected_Videos')
+
+    if os.path.exists("Detected_Videos/Detected_Videos.zip"):
+        os.remove("Detected_Videos/Detected_Videos.zip")
+    file_paths = get_all_file_paths("Detected_Videos")
+    with zipfile.ZipFile('Detected_Videos/Detected_Videos.zip', 'w') as img_zip:
+        for file in file_paths:
+            img_zip.write(file)
+    with open("Detected_Videos/Detected_Videos.zip", 'rb') as fp:
+        st.download_button( label = "Download Video",
+                            help = "Download detection result videos",
+                            data = fp,
+                            file_name = "Detected_Video.zip",
+                            mime='text/zip')
+
 def get_all_file_paths(directory):
   
     # initializing empty file paths list
@@ -356,7 +381,6 @@ def load_model(model_path):
     model = YOLO(model_path)
     return model
 
-
 def display_tracker_options():
     display_tracker = st.radio("Display Tracker", ('Yes', 'No'))
     is_display_tracker = True if display_tracker == 'Yes' else False
@@ -384,7 +408,7 @@ def preview_finished_capture(video_name):
 
 def format_video_results(model, video_name):
     video_results = st.session_state.video_data
-    
+    st.session_state.image_name = os.path.basename(video_name)
     # Initialize empty lists to store data
     index_list = []
     class_id_list = []
@@ -413,7 +437,15 @@ def format_video_results(model, video_name):
     st.write("Video Tracking Results")
     edited_df = st.data_editor(df, disabled=["Index", "class_id", "Count"])
     
-    return edited_df
+    excel = {}
+    excel['Video'] = st.session_state.image_name
+    for name in model.names:
+        col1 = f"{model.names[name]}"
+        excel[col1] = f"{video_results[name]}"
+    
+    dfex = pd.DataFrame(excel, index=[st.session_state.image_name])
+
+    return dfex
 
 def capture_uploaded_video(conf, model, fps,  source_vid, destination_path):
     """
