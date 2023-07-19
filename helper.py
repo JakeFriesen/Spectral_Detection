@@ -133,7 +133,7 @@ def predict(_model, _uploaded_image, confidence, detect_type):
 def results_math( _image, detect_type):
     boxes, detections, classes ,_ ,_ = st.session_state.results
 
-    if detect_type == "Objects + Segmentation":
+    if detect_type == "Objects + Segmentation" and detections.mask is not None:
         segmentation_mask = detections.mask
         class_id_list = detections.class_id
         binary_mask = np.where(segmentation_mask > 0.5, 1, 0)
@@ -146,7 +146,6 @@ def results_math( _image, detect_type):
     class_id_list = []
     result_list = []
     confidence_list = []
-    # select_list = []
     diameter_list = []
 
     # formatted boxes from manual annotator
@@ -288,7 +287,7 @@ def results_math( _image, detect_type):
     #Return Excel Dataframe
     return dfex
 
-def add_to_list(data):
+def add_to_list(data, _image):
     if st.session_state.list is not None:
         #Check for duplicates
         for index, row in st.session_state.list.iterrows():
@@ -303,7 +302,16 @@ def add_to_list(data):
 
     #Save the detected image result
     image_path = Path(settings.RESULTS_DIR, st.session_state.image_name)
-    cv2.imwrite(str(image_path), cv2.cvtColor(st.session_state.results[4], cv2.COLOR_RGB2BGR))
+    #Make a new image with the manual annotations
+    saved_image = np.array(_image.copy())
+    new_boxes = np.floor(np.array([[b[0], b[1], b[2]+b[0], b[3]+b[1]] for b in st.session_state['result_dict'][st.session_state.image_name]['bboxes']]))
+    labels = st.session_state['result_dict'][st.session_state.image_name]['labels']
+    color = (0,0,255)
+    for idx, box in enumerate(new_boxes):
+        saved_image = cv2.rectangle(saved_image, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), settings.COLOR_LIST[labels[idx]], 3)
+
+
+    cv2.imwrite(str(image_path), cv2.cvtColor(saved_image, cv2.COLOR_RGB2BGR))
     #Make the zip here, delete the older zip
 
 

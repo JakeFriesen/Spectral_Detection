@@ -60,6 +60,7 @@ Week of July 10th:
     - [x] Change results to percentage when not "Drop Quadrat"
 - [x] Add classes to manual annotator - Text input to update labels list (cached?)
 - [ ] Multiple confidence levels for the model (hardcoded)
+- [X] Download Images should reflect manual annotations
 - [ ] Formatted detection data dump for future trained models (must include manual annotator data!)
 - [ ] Integrate Video stuff into main - get hosted on web site
 - [ ] Documentation

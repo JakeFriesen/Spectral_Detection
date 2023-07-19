@@ -64,7 +64,7 @@ detect_type = st.sidebar.radio("Choose Detection Type", ["Objects Only", "Object
 model_type = st.sidebar.radio("Select Model", ["Built-in", "Upload"])
 
 confidence = float(st.sidebar.slider(
-    "Select Model Confidence", 25, 100, 40,
+    "Select Model Confidence", 0, 100, 40,
     on_change = helper.repredict(),
     )) / 100
 
@@ -174,15 +174,15 @@ with tab1:
                 #Show the detection results
                 with st.spinner("Calculating Stats..."):
                     selected_df = None
-                    # try:
-                    selected_df = helper.results_math(uploaded_image, detect_type)
-                    # except:
-                    #     st.write("Upload an image first")
+                    try:
+                        selected_df = helper.results_math(uploaded_image, detect_type)
+                    except:
+                        st.write("Upload an image first")
                     
                 #Download Button
                 list_btn = st.button('Add to List')
                 if list_btn and (selected_df is not None):
-                    helper.add_to_list(selected_df)
+                    helper.add_to_list(selected_df, uploaded_image)
                     st.session_state.next_img = True
                     #This gets the update to be forced, removing the double detect issue.
                     #It does look a bit weird though, consider removing
