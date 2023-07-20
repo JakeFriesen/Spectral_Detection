@@ -44,6 +44,8 @@ if 'class_list' not in st.session_state:
     st.session_state.class_list = []
 if 'kelp_conf' not in st.session_state:
     st.session_state.kelp_conf = 0.04
+if 'model_type' not in st.session_state:
+    st.session_state.model_type = 'Built-in'
 
 # Setting page layout
 st.set_page_config(
@@ -65,17 +67,18 @@ st.sidebar.header("Detection Configuration")
 # Model Options
 detect_type = st.sidebar.radio("Choose Detection Type", ["Objects Only", "Objects + Segmentation"])
 model_type = st.sidebar.radio("Select Model", ["Built-in", "Upload"])
+st.session_state.model_type = model_type
 
 confidence = float(st.sidebar.slider(
     "Select Model Confidence", 0, 100, 40,
     on_change = helper.repredict(),
     )) / 100
-kelp_c =st.sidebar.slider(
-    "Select Kelp Confidence", 0, 100, 10,
-    on_change = helper.repredict(),
-    )
-st.session_state.kelp_conf = float(kelp_c)/100
-# float(4*np.log(kelp_c))/100 if kelp_c < 50 else 1.7*float(kelp_c-43)/100
+if model_type == 'Built-in':
+    kelp_c =st.sidebar.slider(
+        "Select Kelp Confidence", 0, 100, 10,
+        on_change = helper.repredict(),
+        )
+    st.session_state.kelp_conf = float(kelp_c)/100
 
 # Selecting The Model to use
 if model_type == 'Built-in':

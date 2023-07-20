@@ -87,26 +87,30 @@ def predict(_model, _uploaded_image, confidence, detect_type):
         # Check if masks are none FIRST
         # If either are None, only keep one
         # Else, merge and take both afterwards
-
-        res = _model.predict(_uploaded_image, conf=confidence, classes = [0,2,3])
-        res1 = _model.predict(_uploaded_image, conf=st.session_state.kelp_conf, classes = [1])
-        # boxes = res[0].boxes
-        classes = res[0].names
-        detections1 = sv.Detections.from_yolov8(res[0])
-        detections2 = sv.Detections.from_yolov8(res1[0])
-        detections = sv.Detections.merge([detections2, detections1])
-        # res = np.concatenate((res.numpy(), res1.numpy()), axis=0)
-        # boxes = np.concatenate((res[0].boxes.xyxy.numpy(), res1[0].boxes.xyxy.numpy()), axis = 0)
-        if detections1.mask is None:
-            detections.mask = detections2.mask
-        elif detections2.mask is None:
-            detections.mask = detections1.mask
-        boxes = detections.xyxy
+        if st.session_state.model_type == "Built-in":
+            res = _model.predict(_uploaded_image, conf=confidence, classes = [0,2,3])
+            res1 = _model.predict(_uploaded_image, conf=st.session_state.kelp_conf, classes = [1])
+            # boxes = res[0].boxes
+            classes = res[0].names
+            detections1 = sv.Detections.from_yolov8(res[0])
+            detections2 = sv.Detections.from_yolov8(res1[0])
+            detections = sv.Detections.merge([detections2, detections1])
+            # res = np.concatenate((res.numpy(), res1.numpy()), axis=0)
+            # boxes = np.concatenate((res[0].boxes.xyxy.numpy(), res1[0].boxes.xyxy.numpy()), axis = 0)
+            if detections1.mask is None:
+                detections.mask = detections2.mask
+            elif detections2.mask is None:
+                detections.mask = detections1.mask
+            boxes = detections.xyxy
+        else:
+            res = _model.predict(_uploaded_image, conf=confidence)
+            classes = res[0].names
+            detections = sv.Detections.from_yolov8(res[0])
+            boxes = detections.xyxy
 
         # res = _model.predict(_uploaded_image, conf=confidence)
         # boxes = res[0].boxes
         # detections = sv.Detections.from_yolov8(res[0])
-        classes = res[0].names
         if(detections is not None):
             labels = [
                 f"{idx} {classes[class_id]} {confidence:0.2f}"
@@ -453,6 +457,24 @@ def load_model(model_path):
 def dump_data():
     #Text files are normalized center point, normalized width/height
     #index x y w h 
+    #TODO: Put the images in a folder
+    # Download the folder on click
+    # Make the YAML file
+    boxes, _, classes, labels, _ = st.session_state.results
+    h, w, x = st.session_state.results[4].shape
+    file_name = st.session_state.image_name[:-3] + "txt"
+    with open(file_name, 'a') as f:
+        for idx, box in enumerate(boxes):
+            wn = float(box[2]-box[0]) / w
+            hn = float(box[3] - box[1]) / h
+            x1n = float(box[0] + float(box[2]-box[0])/2) / w
+            y1n = float(box[1] + float(box[3] - box[1])/2) / h
+            cl = st.session_state['result_dict'][st.session_state.image_name]['labels'][idx]
+            text_str = f'{cl} {x1n:.3f} {y1n:.3f} {wn:.3f} {hn:.3f} \n'
+            f.write(text_str)
+    
+        
+
 
     #YAML file:
     #nc:{number of classes}
