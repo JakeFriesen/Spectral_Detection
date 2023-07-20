@@ -228,8 +228,7 @@ with tab1:
                 if st.button("Clear Image List", help="Clear the saved image data"):
                     helper.clear_image_list()
             with col4:
-                if st.button("Dump Data", help = "Dump all YOLO Detection data, which can be used to train future models."):
-                    helper.dump_data()
+                helper.dump_data_button()
                         
 
     elif source_radio == settings.VIDEO:

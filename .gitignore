@@ -1467,3 +1467,7 @@ images/
 
 Detected_Images/GX010194.jpg
 weights/kelp_segmentor_V16_0 (1).pt
+Dump/data.yaml
+Dump/Detection_Data.zip
+Dump/GX010143.txt
+Dump/GX010194.txt

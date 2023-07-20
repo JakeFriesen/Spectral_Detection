@@ -33,6 +33,7 @@ def init_func():
     #remove detected images
     clear_folder(settings.RESULTS_DIR)
     clear_folder(settings.IMAGES_DIR)
+    clear_folder(settings.DATA_DIR)
 
 
 # Checks that a new image is loaded
@@ -329,13 +330,11 @@ def add_to_list(data, _image):
     saved_image = np.array(_image.copy())
     new_boxes = np.floor(np.array([[b[0], b[1], b[2]+b[0], b[3]+b[1]] for b in st.session_state['result_dict'][st.session_state.image_name]['bboxes']]))
     labels = st.session_state['result_dict'][st.session_state.image_name]['labels']
-    color = (0,0,255)
     for idx, box in enumerate(new_boxes):
         saved_image = cv2.rectangle(saved_image, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), settings.COLOR_LIST[labels[idx]], 3)
-
-
     cv2.imwrite(str(image_path), cv2.cvtColor(saved_image, cv2.COLOR_RGB2BGR))
-    #Make the zip here, delete the older zip
+    #Make the data dump text file here as well
+    dump_data()
 
 
 def clear_image_list():
@@ -460,9 +459,11 @@ def dump_data():
     #TODO: Put the images in a folder
     # Download the folder on click
     # Make the YAML file
+    if not os.path.exists('Dump'):
+        os.mkdir('Dump')
     boxes, _, classes, labels, _ = st.session_state.results
     h, w, x = st.session_state.results[4].shape
-    file_name = st.session_state.image_name[:-3] + "txt"
+    file_name = "Dump/"  + st.session_state.image_name[:-3] + "txt"
     with open(file_name, 'a') as f:
         for idx, box in enumerate(boxes):
             wn = float(box[2]-box[0]) / w
@@ -472,12 +473,35 @@ def dump_data():
             cl = st.session_state['result_dict'][st.session_state.image_name]['labels'][idx]
             text_str = f'{cl} {x1n:.3f} {y1n:.3f} {wn:.3f} {hn:.3f} \n'
             f.write(text_str)
-    
-        
-
-
     #YAML file:
     #nc:{number of classes}
     #names:['','','']
-    
+
+def dump_data_button():
+    if os.path.exists("Dump/data.yaml"):
+        os.remove("Dump/data.yaml")     
+    #Make the YAML file
+    str1 = f'nc: {len(st.session_state.results[2])}\n'
+    str2 = f"names: ['"
+    for name in st.session_state.results[2].values():
+        str2 += f"{name}', "
+    str2 = str2[:-2] + "]"
+    with open("Dump/data.yaml", 'w') as fp:
+        fp.write(str1)
+        fp.write(str2)
+
+    #Zip the Data
+    if os.path.exists("Dump/Detection_Data.zip"):
+        os.remove("Dump/Detection_Data.zip")
+    file_paths = get_all_file_paths("Dump")
+    with zipfile.ZipFile('Dump/Detection_Data.zip', 'w') as img_zip:
+        for file in file_paths:
+            img_zip.write(file)
+    with open("Dump/Detection_Data.zip", 'rb') as fp:
+        st.download_button( label = "Detection Data Dump",
+                            help = "Dump all YOLO Detection data, which can be used to train future models.",
+                            data = fp,
+                            file_name = "Detection_Data.zip",
+                            mime='text/zip')
+
     return
