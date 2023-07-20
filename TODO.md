@@ -54,7 +54,7 @@ Week of July 10th:
 ## Final Stretch Stuff
 - [ ] Manual Annotation fixing
     - [x] Get redetection to override existing boxes (e.g. changing confidence should completely redo the boxes)
-    - [ ] Test reclassifying boxes
+    - [ ] Test reclassifying boxes - Doesn't work, but solution is to delete and make a new one (possibly fine?)
 - [x] Radio buttons for "Drop Quadrat" or not
     - [x] Text input for PVC side length
     - [x] Change results to percentage when not "Drop Quadrat"

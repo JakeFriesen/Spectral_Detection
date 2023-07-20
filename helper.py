@@ -83,9 +83,29 @@ def predict(_model, _uploaded_image, confidence, detect_type):
     col1, col2 = st.columns(2)
     # Detection Stage
     if st.session_state['predicted'] == False:
-        res = _model.predict(_uploaded_image, conf=confidence)
-        boxes = res[0].boxes
-        detections = sv.Detections.from_yolov8(res[0])
+        #TODO: Use sv.Detections.merge([detections1, detections2]) for multiple confidence level support
+        # Check if masks are none FIRST
+        # If either are None, only keep one
+        # Else, merge and take both afterwards
+
+        res = _model.predict(_uploaded_image, conf=confidence, classes = [0,2,3])
+        res1 = _model.predict(_uploaded_image, conf=st.session_state.kelp_conf, classes = [1])
+        # boxes = res[0].boxes
+        classes = res[0].names
+        detections1 = sv.Detections.from_yolov8(res[0])
+        detections2 = sv.Detections.from_yolov8(res1[0])
+        detections = sv.Detections.merge([detections2, detections1])
+        # res = np.concatenate((res.numpy(), res1.numpy()), axis=0)
+        # boxes = np.concatenate((res[0].boxes.xyxy.numpy(), res1[0].boxes.xyxy.numpy()), axis = 0)
+        if detections1.mask is None:
+            detections.mask = detections2.mask
+        elif detections2.mask is None:
+            detections.mask = detections1.mask
+        boxes = detections.xyxy
+
+        # res = _model.predict(_uploaded_image, conf=confidence)
+        # boxes = res[0].boxes
+        # detections = sv.Detections.from_yolov8(res[0])
         classes = res[0].names
         if(detections is not None):
             labels = [
@@ -111,7 +131,7 @@ def predict(_model, _uploaded_image, confidence, detect_type):
                 new_boxes = np.array(st.session_state['result_dict'][st.session_state.image_name]['bboxes'])
                 new_boxes = np.floor(new_boxes)
                 # Only choose the detection masks that have the same boxes as new_boxes
-                cur_boxes = st.session_state.results[0].xyxy.numpy()
+                cur_boxes = st.session_state.results[0]
                 cur_boxes = np.floor(cur_boxes)
                 for idx, [_, _, confidence, class_id, _] in enumerate(detections):
                     if cur_boxes[idx] not in new_boxes:
@@ -130,7 +150,7 @@ def predict(_model, _uploaded_image, confidence, detect_type):
 
 #Results Calculations
 def results_math( _image, detect_type):
-    boxes, detections, classes ,_ ,_ = st.session_state.results
+    boxes, detections, classes ,_ ,_  = st.session_state.results
 
     if detect_type == "Objects + Segmentation" and detections.mask is not None:
         segmentation_mask = detections.mask
@@ -155,7 +175,7 @@ def results_math( _image, detect_type):
         #Side length of PVC box in cm - Taken from the user
         side_length_PVC = st.session_state.side_length
 
-    detected_boxes = boxes.xyxy.numpy()
+    detected_boxes = boxes
     detected_boxes = np.floor(detected_boxes)
     new_boxes = np.floor(new_boxes)
 
@@ -172,7 +192,7 @@ def results_math( _image, detect_type):
                     diameter_list.append(diameter)
                 elif st.session_state.drop_quadrat == "Percentage":
                     #Just percentage, no diameter
-                    result = np.sum(new_images[idx] != 255) / (new_images[idx].shape[0]*new_images[idx].shape[1]) * 100
+                    result = np.sum(new_images[idx] != 255) / (new_images[idx].size) * 100
                 result_list.append(result)
             # select = True
             # Append values to respective lists
@@ -398,9 +418,12 @@ def interactive_detections():
 
     #This is the first run, take the results from the initial detection
     if st.session_state['predicted'] == False:
-        for box in st.session_state.results[0].xywh.numpy():
-            top_coord = [box[0] - (box[2]/2), box[1] - (box[3]/2)]
-            bboxes.append([top_coord[0], top_coord[1], box[2], box[3]])
+        for box in st.session_state.results[0]:
+            width = box[2] - box[0]
+            height = box[3] - box[1]
+            bboxes.append([box[0], box[1], width, height])
+            # top_coord = [box[0] - (box[2]/2), box[1] - (box[3]/2)]
+            # bboxes.append([top_coord[0], top_coord[1], box[2], box[3]])
         for detections in st.session_state.results[1]:
             labels.append(int(detections[3])) 
         st.session_state['result_dict'][st.session_state.image_name] = {'bboxes': bboxes,'labels':labels}
@@ -413,7 +436,6 @@ def interactive_detections():
                         bboxes=bboxes, 
                         labels=labels, 
                         label_list=label_list, 
-                        # key=st.session_state.image_name,
                         height = 1080,
                         width = 1920)
     if new_labels is not None:
@@ -428,3 +450,12 @@ def load_model(model_path):
     model = YOLO(model_path)
     return model
 
+def dump_data():
+    #Text files are normalized center point, normalized width/height
+    #index x y w h 
+
+    #YAML file:
+    #nc:{number of classes}
+    #names:['','','']
+    
+    return

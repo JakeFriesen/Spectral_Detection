@@ -2,6 +2,7 @@
 from pathlib import Path
 import PIL
 import os
+import numpy as np
 
 # External packages
 import streamlit as st
@@ -41,6 +42,8 @@ if 'manual_class' not in st.session_state:
     st.session_state.manual_class = ""
 if 'class_list' not in st.session_state:
     st.session_state.class_list = []
+if 'kelp_conf' not in st.session_state:
+    st.session_state.kelp_conf = 0.04
 
 # Setting page layout
 st.set_page_config(
@@ -67,6 +70,12 @@ confidence = float(st.sidebar.slider(
     "Select Model Confidence", 0, 100, 40,
     on_change = helper.repredict(),
     )) / 100
+kelp_c =st.sidebar.slider(
+    "Select Kelp Confidence", 0, 100, 10,
+    on_change = helper.repredict(),
+    )
+st.session_state.kelp_conf = float(kelp_c)/100
+# float(4*np.log(kelp_c))/100 if kelp_c < 50 else 1.7*float(kelp_c-43)/100
 
 # Selecting The Model to use
 if model_type == 'Built-in':
@@ -176,8 +185,9 @@ with tab1:
                     selected_df = None
                     try:
                         selected_df = helper.results_math(uploaded_image, detect_type)
-                    except:
+                    except Exception as ex:
                         st.write("Upload an image first")
+                        # st.write(ex)
                     
                 #Download Button
                 list_btn = st.button('Add to List')
@@ -199,7 +209,7 @@ with tab1:
         if st.session_state.add_to_list:
             st.write("Image List:")
             st.dataframe(st.session_state.list)
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3, col4 = st.columns(4)
             with col1:
                 try:
                     st.download_button( label = "Download Results", 
@@ -214,6 +224,9 @@ with tab1:
             with col3:
                 if st.button("Clear Image List", help="Clear the saved image data"):
                     helper.clear_image_list()
+            with col4:
+                if st.button("Dump Data", help = "Dump all YOLO Detection data, which can be used to train future models."):
+                    helper.dump_data()
                         
 
     elif source_radio == settings.VIDEO:
