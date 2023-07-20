@@ -482,9 +482,9 @@ def dump_data_button():
         os.remove("Dump/data.yaml")     
     #Make the YAML file
     str1 = f'nc: {len(st.session_state.results[2])}\n'
-    str2 = f"names: ['"
+    str2 = f"names: ["
     for name in st.session_state.results[2].values():
-        str2 += f"{name}', "
+        str2 += f"'{name}', "
     str2 = str2[:-2] + "]"
     with open("Dump/data.yaml", 'w') as fp:
         fp.write(str1)
