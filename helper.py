@@ -530,7 +530,7 @@ def capture_uploaded_video(conf, model, fps,  source_vid, destination_path):
                             f"Counter:{Species_Counter} -- Species:{model.names}",
                             (40,100),
                             cv2.FONT_HERSHEY_SIMPLEX,
-                            2,
+                            1,
                             (0, 255, 255),
                             4)    
                         video_out.write(frame)
