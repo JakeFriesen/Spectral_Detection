@@ -210,7 +210,7 @@ with tab1:
                 Done = helper.capture_uploaded_video(confidence, model, interval, vid_path, des_path)
                 if (True == Done):
                     st.session_state['detect'] = True
-                    st.experimental_rerun()
+                    #st.experimental_rerun()
             else:
                 if not os.path.exists(h264_path):
                     import subprocess
@@ -220,7 +220,7 @@ with tab1:
                 list_btn = st.button('Add to List')
                 if list_btn and (video_df is not None):
                     helper.add_to_listv(video_df)
-                    st.experimental_rerun()
+                    #st.experimental_rerun()
         else:
             st.session_state['detect'] = False
         
