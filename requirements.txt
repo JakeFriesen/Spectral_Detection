@@ -4,7 +4,8 @@
 # Base ----------------------------------------
 matplotlib>=3.2.2
 numpy>=1.18.5
-lap==0.4.0
+# lap==0.4.0
+git+https://github.com/gatagat/lap@new-packaging
 opencv-python-headless
 Pillow>=7.1.2
 PyYAML>=5.3.1
