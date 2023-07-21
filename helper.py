@@ -485,9 +485,6 @@ def load_model(model_path):
 def dump_data():
     #Text files are normalized center point, normalized width/height
     #index x y w h 
-    #TODO: Put the images in a folder
-    # Download the folder on click
-    # Make the YAML file
     if not os.path.exists('Dump'):
         os.mkdir('Dump')
     boxes, _, classes, labels, _ = st.session_state.results
@@ -502,17 +499,16 @@ def dump_data():
             cl = st.session_state['result_dict'][st.session_state.image_name]['labels'][idx]
             text_str = f'{cl} {x1n:.3f} {y1n:.3f} {wn:.3f} {hn:.3f} \n'
             f.write(text_str)
-    #YAML file:
-    #nc:{number of classes}
-    #names:['','','']
+
 
 def dump_data_button():
     if os.path.exists("Dump/data.yaml"):
         os.remove("Dump/data.yaml")     
     #Make the YAML file
-    str1 = f'nc: {len(st.session_state.results[2])}\n'
+    classes = st.session_state.results[2]
+    str1 = f'nc: {len(classes)}\n'
     str2 = f"names: ["
-    for name in st.session_state.results[2].values():
+    for name in classes.values():
         str2 += f"'{name}', "
     str2 = str2[:-2] + "]"
     with open("Dump/data.yaml", 'w') as fp:

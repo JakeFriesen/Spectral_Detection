@@ -22,7 +22,7 @@ if 'initialized' not in st.session_state:
 if 'results' not in st.session_state:
     st.session_state.results = []
 if 'video_data' not in st.session_state:
-    st.session_state.results = []
+    st.session_state.video_data = []
 if 'image_name' not in st.session_state:
     st.session_state.image_name = None
 if 'list' not in st.session_state:
