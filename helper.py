@@ -33,6 +33,7 @@ def init_func():
     #remove detected images
     clear_folder(settings.RESULTS_DIR)
     clear_folder(settings.IMAGES_DIR)
+    clear_folder(settings.VIDEO_RES)
     
 
 
@@ -288,7 +289,8 @@ def add_to_listv(data):
 def clear_image_list():
     st.session_state.list = None
     st.session_state.add_to_list = False
-    #clear_folder(settings.RESULTS_DIR)
+    clear_folder(settings.RESULTS_DIR)
+    clear_folder(settings.VIDEO_RES)
     st.experimental_rerun()
 
 def substrate_selection():

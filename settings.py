@@ -30,6 +30,9 @@ DEFAULT_DIR = ROOT / 'default'
 DEFAULT_IMAGE = DEFAULT_DIR / 'GX010143.jpg'
 DEFAULT_DETECT_IMAGE = DEFAULT_DIR / '143_detected.jpg'
 
+# Video Config
+VIDEO_RES = ROOT / 'Detected_Videos'
+
 # ML Model config
 MODEL_DIR = ROOT / 'weights'
 DETECTION_MODEL = MODEL_DIR / 'urchin_detector_V9_0.pt'
