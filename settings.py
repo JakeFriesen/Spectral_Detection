@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+import torch
 
 # Get the absolute path of the current file
 file_path = Path(__file__).resolve()
@@ -14,6 +15,9 @@ if root_path not in sys.path:
 # Get the relative path of the root directory with respect to the current working directory
 ROOT = root_path.relative_to(Path.cwd())
 
+# DEvice
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 # Sources
 IMAGE = 'Image'
 VIDEO = 'Video'
@@ -25,6 +29,9 @@ IMAGES_DIR = ROOT / 'images'
 DEFAULT_DIR = ROOT / 'default'
 DEFAULT_IMAGE = DEFAULT_DIR / 'GX010143.jpg'
 DEFAULT_DETECT_IMAGE = DEFAULT_DIR / '143_detected.jpg'
+
+# Video Config
+VIDEO_RES = ROOT / 'Detected_Videos'
 
 # ML Model config
 MODEL_DIR = ROOT / 'weights'

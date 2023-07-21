@@ -2,9 +2,10 @@ import math
 from ultralytics import YOLO
 import streamlit as st
 import pandas as pd
-import base64
+import os
 import cv2
 import numpy as np
+import ffmpegcv
 import supervision as sv
 from supervision.draw.color import Color
 from streamlit_image_annotation import detection
@@ -34,6 +35,8 @@ def init_func():
     clear_folder(settings.RESULTS_DIR)
     clear_folder(settings.IMAGES_DIR)
     clear_folder(settings.DATA_DIR)
+    clear_folder(settings.VIDEO_RES)
+
 
 
 # Checks that a new image is loaded
@@ -336,12 +339,21 @@ def add_to_list(data, _image):
     #Make the data dump text file here as well
     dump_data()
 
+def add_to_listv(data):
+    if st.session_state.list is not None:
+
+        frames = [st.session_state.list, data]
+        st.session_state.list = pd.concat(frames)
+    else:
+        st.session_state.list = data
+    st.session_state.add_to_list = True
 
 def clear_image_list():
     st.session_state.list = None
     st.session_state.add_to_list = False
-    st.experimental_rerun()
     clear_folder(settings.RESULTS_DIR)
+    clear_folder(settings.VIDEO_RES)
+    st.experimental_rerun()
 
 def substrate_selection():
     data_df = pd.DataFrame(
@@ -384,6 +396,23 @@ def zip_images():
                             help = "Download detection result images",
                             data = fp,
                             file_name = "Detection_Images.zip",
+                            mime='text/zip')
+
+def zip_video():
+    if not os.path.exists('Detected_Videos'):
+        os.mkdir('Detected_Videos')
+
+    if os.path.exists("Detected_Videos/Detected_Videos.zip"):
+        os.remove("Detected_Videos/Detected_Videos.zip")
+    file_paths = get_all_file_paths("Detected_Videos")
+    with zipfile.ZipFile('Detected_Videos/Detected_Videos.zip', 'w') as img_zip:
+        for file in file_paths:
+            img_zip.write(file)
+    with open("Detected_Videos/Detected_Videos.zip", 'rb') as fp:
+        st.download_button( label = "Download Video",
+                            help = "Download detection result videos",
+                            data = fp,
+                            file_name = "Detected_Video.zip",
                             mime='text/zip')
 
 def get_all_file_paths(directory):
@@ -505,3 +534,167 @@ def dump_data_button():
                             mime='text/zip')
 
     return
+def display_tracker_options():
+    display_tracker = st.radio("Display Tracker", ('Yes', 'No'))
+    is_display_tracker = True if display_tracker == 'Yes' else False
+    if is_display_tracker:
+        tracker_type = st.radio("Tracker", ("bytetrack.yaml", "botsort.yaml"))
+        return is_display_tracker, tracker_type
+    return is_display_tracker, None
+
+def preview_video_upload(video_name,data):
+    with open(video_name, 'wb') as video_file:
+        video_file.write(data)
+        
+    with open(video_name, 'rb') as video_file:
+        video_bytes = video_file.read()
+    if video_bytes:
+        st.video(video_bytes)
+    return video_name
+
+def preview_finished_capture(video_name):
+    if os.path.exists(video_name):
+        with open(video_name, 'rb') as video_file:
+            video_bytes = video_file.read()
+        if video_bytes:
+            st.video(video_bytes)
+
+def format_video_results(model, video_name):
+    video_results = st.session_state.video_data
+    st.session_state.image_name = os.path.basename(video_name)
+    # Initialize empty lists to store data
+    index_list = []
+    class_id_list = []
+    count_list = []
+    select_list = []
+	
+	# [0, 132, 1, 0] {0: 'Sea Cucumber', 1: 'Sea Urchin', 2: 'Starfish', 3: 'Starfish-5'}
+    for idx in range(len(video_results)):
+        select = True
+        index_list.append(idx+1)
+        class_id_list.append(model.names[idx])
+        count_list.append(video_results[idx])
+        select_list.append(select)
+		
+    data = {
+        'Index': index_list,
+        'class_id': class_id_list,
+        'Count': count_list,
+        'Select': select_list
+    }
+    df = pd.DataFrame(data)
+
+    # Set class_id as the index
+    df.set_index('Index', inplace=True)
+
+    st.write("Video Tracking Results")
+    edited_df = st.data_editor(df, disabled=["Index", "class_id", "Count"])
+    
+    excel = {}
+    excel['Video'] = st.session_state.image_name
+    for name in model.names:
+        col1 = f"{model.names[name]}"
+        excel[col1] = f"{video_results[name]}"
+    
+    dfex = pd.DataFrame(excel, index=[st.session_state.image_name])
+
+    return dfex
+
+def capture_uploaded_video(conf, model, fps,  source_vid, destination_path):
+    """
+    Plays a stored video file. Tracks and detects objects in real-time using the YOLOv8 object detection model.
+
+    Parameters:
+        conf: Confidence of YOLOv8 model.
+        model: An instance of the `YOLOv8` class containing the YOLOv8 model.
+        fps: Frame rate to sample the input video at.
+        source_path: Path/input.[MP4,MPEG]
+        destinantion_path: Path/output.[MP4,MPEG]
+
+    Returns:
+        None
+
+    Raises:
+        None
+    """
+    with st.spinner("Processing Video Capture..."):
+        _, tracker = display_tracker_options()
+
+        if st.sidebar.button('Detect Video Objects'):
+            try:
+                vid_cap = ffmpegcv.VideoCapture(source_vid)
+                video_out = ffmpegcv.VideoWriter(destination_path, 'h264', vid_cap.fps*fps)
+                if video_out is None:
+                    raise Exception("Error creating VideoWriter")
+                Species_Counter = [0 for n in model.names]
+                Per_Counter =[0]
+                frame_count = 0
+                with vid_cap, video_out:
+                    for frame in vid_cap:
+                        frame_count = frame_count + 1
+                        results = model.track(frame, conf=conf, iou=0.2, persist=True, tracker=tracker, device=settings.DEVICE)[0]
+
+                        if results.boxes.id is not None:
+        
+                            boxes = results.boxes.xyxy.cpu().numpy().astype(int)
+                            ids = results.boxes.id.cpu().numpy().astype(int)
+                            clss = results.boxes.cls.cpu().numpy().astype(int)
+                            #confs = results.boxes.conf.cpu().numpy().astype(float)
+
+
+                            for box_num  in range(len(boxes)):
+                            
+                                box = boxes[box_num]
+                                id = ids[box_num]
+                                cls = clss[box_num]
+                                #conf = confs[box_num]
+
+                                # use id as first array index
+                                # use class as second array index
+                                # use persistance counter as third array index
+
+
+                                color =  (0, 255, 0)
+                                while id >= len(Per_Counter)-1:
+                                    Per_Counter.append(0)
+
+                                Per_Counter[id] += 1
+
+                                if Per_Counter[id]< 10: 
+                                    color =  (163, 0, 163)
+                                elif Per_Counter[id] == 10:
+                                    Species_Counter[cls] += 1
+                                    color =  (255, 0, 255)
+
+
+                                cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), color, 2)
+                                cv2.putText(
+                                    frame,
+                                    f" Id:{id}",# Class:{cls}; Conf:{round(conf,2)} ",
+                                    (box[0], box[1]),
+                                    cv2.FONT_HERSHEY_SIMPLEX,
+                                    2,
+                                    color,
+                                    2)
+
+
+                        cv2.putText(
+                            frame,
+                            f"Counter:{Species_Counter} -- Species:{model.names}",
+                            (40,100),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            1,
+                            (0, 255, 255),
+                            4)    
+                        video_out.write(frame)
+                vid_cap.release()
+                video_out.release()
+                if os.path.exists(destination_path):
+                    print("Capture Done. " + str(Species_Counter) + ' ' + str(model.names) )
+                    st.session_state.video_data = Species_Counter
+                    return True
+            except Exception as e:
+                import traceback
+                st.sidebar.error("Error loading video: " + str(e))
+                traceback.print_exc()
+    return False
