@@ -1,2 +1,4 @@
 libgl1
 ffmpeg
+numpy
+lap
