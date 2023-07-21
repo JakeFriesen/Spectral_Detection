@@ -245,20 +245,35 @@ with tab2:
     st.write("Visit the GitHub for this project: https://github.com/JakeFriesen/Spectral_Detection")
 
     st.header("How to Use")
+    st.write(":blue[**Select Source:**] Choose to upload an image or video")
     st.write(":blue[**Choose Detection Type:**] Choose to detect species only, or also use segmentation to get coverage results.")
     st.write(":blue[**Select Model:**] Choose between the built in model, or use your own (supports .pt model files).")
     st.write(":blue[**Select Model Confidence:**] Choose the confidence threshold cutoff for object detection. Useful for fine tuning detections on particular images.")
-    st.write(":blue[**Select Source:**] Choose to upload an image or video")
+    st.write(":blue[**Select Kelp Confidence:**] Choose the confidence threshold for the Kelp class only. This was added to allow greater detection flexibility with kelp.")
+    st.write(":blue[**Choose Results Formatting:**] Choose the formatting for the segmentation results. \
+             Choosing :blue[Area (Drop Quadrat)] will allow you to enter the size of the PVC surrounding the image, and the results will be in square centimeters. \
+             Choosing :blue[Percentage] will output the results as a percentage of the image area.")
+    st.write(":blue[**Choose an Image:**] Upload the images that will be used for the detection and segmentation.")
+    
 
     st.header("Image Detection")
     st.write("After an image is uploaded, the :blue[**Detect**] button will display, and run the detection or segmentation based on the :blue[**Detection Type**] chosen above.")
-    st.write("The detected and segmented images will be displayed, along with the image detection results.")
+    st.write("The detected and segmented images will be displayed, along with a manual annotator and the image detection results.  \
+            The Manual Annotator can be used to delete bounding boxes using :blue[del], or to add and move boxes using :blue[transform] \
+            Pressing :blue[Complete] will update the results below, and also remove any bounding boxes that were deleted from the detection and segmentation results.")
+    st.write("New classes can be added to the manual annotator dropdown by entering the name in the :blue[**Enter New Manual Classes**] box.")
+    st.write("Note: The manual annotator will not update coverage results if a new bounding box is created, or an original bounding box is resized.")
+    st.write("Note: The manual annotator does not support reclassifying existing bounding boxes at this time. Please delete the orignal and create a new bounding box with the new class type ")
+    
     st.header("Results")
-    st.write("A list of results will be displayed, with an index corresponding to the numbered box in the detected image.")
-    st.write("Select which results to keep, manually select the substrate, and press :blue[**Add To List**], which will show the current list of images saved")
-    st.write("When complete, press :blue[**Download Results**] to download the csv file with the resulting data")
+    st.write("A list of results will be displayed, showing the number of detections, and coverage if segmentation is selected. Coverage will be in cm^2 or %% based on the :blue[**Results Formatting**] chosen.")
+    st.write("Press :blue[**Download Results**] to download the csv file with the resulting data")
+    st.write("Press :blue[**Download Image**] to download the image files with the bounding boxes")
+    st.write("Press :blue[**Clear Image List**] to clear all images from the saved list")
+    st.write("Press :blue[**Download Data Dump**] to download the detection data in YOLO format for use with future training")
     st.header("Batch Images")
-    st.write("If multiple files are uploaded, after pressing :blue[**Add To List**], pressing :blue[**Detect**] again will load the next image.")
+    st.write("If multiple files are uploaded, after pressing :blue[**Add To List**], pressing :blue[**Detect**] again will load the next image and start the next detection.")
+
     st.header("Video Detection")
     #TODO: VIDEO STUFF
     st.write("Under Construction...")

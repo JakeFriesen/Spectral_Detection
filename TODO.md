@@ -59,10 +59,35 @@ Week of July 10th:
     - [x] Text input for PVC side length
     - [x] Change results to percentage when not "Drop Quadrat"
 - [x] Add classes to manual annotator - Text input to update labels list (cached?)
-- [ ] Multiple confidence levels for the model (hardcoded)
+- [x] Multiple confidence levels for the model (hardcoded)
 - [X] Download Images should reflect manual annotations
-- [ ] Formatted detection data dump for future trained models (must include manual annotator data!)
+- [x] Formatted detection data dump for future trained models (must include manual annotator data!)
 - [ ] Integrate Video stuff into main - get hosted on web site
 - [ ] Documentation
-    - [ ] Update "About" Tab
+    - [x] Update "About" Tab
     - [ ] Get Installation Guide finished and accurate (incl. video requirements)
+
+### List of Features for Poster
+Results
+- Download YOLO formatted data
+- Download Image with detections results
+- Download Spreadsheet with detections results
+- Coverage of individual species in image
+- Average diameter of individual species in image
+- Number of individual species in image
+
+
+Editing
+- Add additional classes manually
+- Add bounding boxes manually
+- Delete/Transform bounding boxes manually
+
+Configuration
+- Change confidence threshold (+For Kelp)
+- Change Object Detection / Segmentation
+- Change Results Area / Percent Coverage
+- Change model Built in / Uploaded
+
+Extras
+- Batch image processing
+- 
