@@ -31,11 +31,8 @@ ultralytics
 opencv-python-headless
 segment_anything
 supervision
-<<<<<<< HEAD
 py-cpuinfo
 streamlit_image_annotation
-=======
 ffmpy
 ffmpegcv
 py-cpuinfo
->>>>>>> origin/Videoplayer
