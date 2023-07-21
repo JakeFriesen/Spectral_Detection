@@ -202,7 +202,7 @@ with tab1:
         if source_vid is not None:
             source_name = str(Path(source_vid.name).stem)
             vid_path = 'preprocess_' + source_name + '.mp4'
-            des_path = 'upload.mp4'
+            des_path = 'process_'+ source_name + '.mp4'
             h264_path = 'Detected_Videos\\' + source_name + '_h264.mp4'
             bytes_data = source_vid.getvalue()
             video_path = helper.preview_video_upload(vid_path, bytes_data)
@@ -210,19 +210,21 @@ with tab1:
                 Done = helper.capture_uploaded_video(confidence, model, interval, vid_path, des_path)
                 if (True == Done):
                     st.session_state['detect'] = True
-                    #st.experimental_rerun()
             else:
                 if not os.path.exists(h264_path):
                     import subprocess
                     subprocess.call(args=f"ffmpeg -y -i {des_path} -c:v libx264 {h264_path}".split(" "))
-                helper.preview_finished_capture(h264_path)
-                video_df = helper.format_video_results(model, h264_path)
-                list_btn = st.button('Add to List')
-                if list_btn and (video_df is not None):
-                    helper.add_to_listv(video_df)
-                    #st.experimental_rerun()
+                st.session_state.next_img = True
         else:
             st.session_state['detect'] = False
+        
+        if st.session_state.next_img:
+            helper.preview_finished_capture(h264_path)
+            video_df = helper.format_video_results(model, h264_path)
+            list_btn = st.button('Add to List')
+            if list_btn and (video_df is not None):
+                helper.add_to_listv(video_df)
+                st.session_state.next_img = False
         
         if st.session_state.add_to_list:
             st.write("Video List:")
