@@ -108,10 +108,6 @@ elif model_type == 'Upload':
     except Exception as ex:
         st.sidebar.write("No Model Uploaded Yet...")
         # st.error(ex)
-# Option for Drop Quadrat selection
-st.sidebar.radio("Choose Results Formatting", ["Percentage", "Area (Drop Quadrat)"], key = "drop_quadrat")
-if st.session_state.drop_quadrat == "Area (Drop Quadrat)":
-    st.sidebar.number_input("Side Length of Drop Quadrat (cm)", value = 0, key= 'side_length')
 
 # Initializing Functions
 # Put here so that the sidebars and title show up while it loads
@@ -126,6 +122,11 @@ tab1, tab2 = st.tabs(["Detection", "About"])
 with tab1:
     # If image is selected
     if source_radio == settings.IMAGE:
+        # Option for Drop Quadrat selection
+        st.sidebar.radio("Choose Results Formatting", ["Percentage", "Area (Drop Quadrat)"], key = "drop_quadrat")
+        if st.session_state.drop_quadrat == "Area (Drop Quadrat)":
+            st.sidebar.number_input("Side Length of Drop Quadrat (cm)", value = 0, key= 'side_length')
+
         source_img_list = st.sidebar.file_uploader(
             "Choose an image...", 
             type=("jpg", "jpeg", "png", 'bmp', 'webp'), 
@@ -260,7 +261,8 @@ with tab1:
                     helper.add_to_listv(video_df)
                 st.session_state.next_img = False
         else:
-            st.session_state['detect'] = False            
+            st.session_state['detect'] = False 
+            st.write("Upload a video from the sidebar to get started.")           
         
         if st.session_state.add_to_list:
             st.write("Video List:")

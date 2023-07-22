@@ -531,12 +531,13 @@ def dump_data_button():
 
     return
 def display_tracker_options():
-    display_tracker = st.radio("Display Tracker", ('Yes', 'No'))
-    is_display_tracker = True if display_tracker == 'Yes' else False
-    if is_display_tracker:
-        tracker_type = st.radio("Tracker", ("bytetrack.yaml", "botsort.yaml"))
-        return is_display_tracker, tracker_type
-    return is_display_tracker, None
+    return True, "bytetrack.yaml"
+    # display_tracker = st.radio("Display Tracker", ('Yes', 'No'))
+    # is_display_tracker = True if display_tracker == 'Yes' else False
+    # if is_display_tracker:
+    #     tracker_type = st.radio("Tracker", ("bytetrack.yaml", "botsort.yaml"))
+    #     return is_display_tracker, tracker_type
+    # return is_display_tracker, None
 
 def preview_video_upload(video_name,data):
     with open(video_name, 'wb') as video_file:

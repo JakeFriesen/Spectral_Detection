@@ -28,7 +28,7 @@ psutil  # system utilization
 thop  # FLOPs computation
 streamlit
 wget
-ultralytics
+ultralytics >=8.0.139
 opencv-python-headless
 segment_anything
 supervision
