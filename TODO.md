@@ -91,3 +91,29 @@ Configuration
 Extras
 - Batch image processing
 - 
+
+
+
+#### Things TODO For Presentation
+- [ ] Poster
+    - [ ] Introduction - problem, spectral Labs, objectives
+    - [ ] Design Methodology - YOLO, train with SAM, implement with Streamlit
+    - [ ] Final Implementation - Features, basic uses
+    - [ ] Results - How the model performs, confusion matrix, image output
+    - [ ] Conclusion - Was it successful?
+    - [ ] Acknowledgements & References
+- [ ] Website
+    - [ ] About the Team
+    - [ ] Project Background
+    - [ ] Design
+    - [ ] Results
+    - [ ] Acknowledgements
+    - [ ] Final Report
+- [ ] Final Report
+    - [ ] 
+
+
+### Bugs To Fix
+- [ ] Image 168 - detecting with no detections found crashes the app
+- [x] upload images, detect, upload extra and delete other images
+- [x] data dump class index out of range

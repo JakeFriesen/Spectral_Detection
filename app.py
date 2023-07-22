@@ -140,11 +140,12 @@ with tab1:
                     img_path = Path(settings.IMAGES_DIR, img.name)
                     with open(img_path, 'wb') as file:
                         file.write(img.getbuffer())
+                helper.change_image(source_img_list)
+                # st.write(st.session_state.img_num)
+                source_img = source_img_list[st.session_state.img_num]
             except:
                 st.sidebar.write("There is an issue with writing image files")
-            helper.change_image(source_img_list)
-            # st.write(st.session_state.img_num)
-            source_img = source_img_list[st.session_state.img_num]
+            
         col1, col2 = st.columns(2)
 
         with col1:

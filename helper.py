@@ -49,7 +49,7 @@ def change_image(img_list):
         st.session_state.img_num += 1
         if(st.session_state.img_num >= len(img_list)):
             st.write("At the end of image list! Upload more images")
-            st.session_state.img_num = len(img_list)-1
+            st.session_state.img_num = 0
     if img_list:
         img = img_list[st.session_state.img_num]
     else:
@@ -92,8 +92,8 @@ def predict(_model, _uploaded_image, confidence, detect_type):
         # If either are None, only keep one
         # Else, merge and take both afterwards
         if st.session_state.model_type == "Built-in":
-            res = _model.predict(_uploaded_image, conf=confidence, classes = [0,2,3])
-            res1 = _model.predict(_uploaded_image, conf=st.session_state.kelp_conf, classes = [1])
+            res = _model.predict(_uploaded_image, conf=confidence, classes = [0,2,3], max_det=100)
+            res1 = _model.predict(_uploaded_image, conf=st.session_state.kelp_conf, classes = [1], max_det=100)
             # boxes = res[0].boxes
             classes = res[0].names
             detections1 = sv.Detections.from_yolov8(res[0])
@@ -183,8 +183,7 @@ def results_math( _image, detect_type):
         #Side length of PVC box in cm - Taken from the user
         side_length_PVC = st.session_state.side_length
 
-    detected_boxes = boxes
-    detected_boxes = np.floor(detected_boxes)
+    detected_boxes = np.floor(boxes)
     new_boxes = np.floor(new_boxes)
 
     for idx, [_, _, confidence, class_id, _] in enumerate(detections):
@@ -487,7 +486,8 @@ def dump_data():
     #index x y w h 
     if not os.path.exists('Dump'):
         os.mkdir('Dump')
-    boxes, _, classes, labels, _ = st.session_state.results
+    # boxes, _, classes, labels, _ = st.session_state.results
+    boxes = np.array([[b[0], b[1], b[2]+b[0], b[3]+b[1]] for b in st.session_state['result_dict'][st.session_state.image_name]['bboxes']])
     h, w, x = st.session_state.results[4].shape
     file_name = "Dump/"  + st.session_state.image_name[:-3] + "txt"
     with open(file_name, 'a') as f:
