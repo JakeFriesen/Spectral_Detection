@@ -51,3 +51,6 @@ MAGENTA = (255, 0, 255)
 YELLOW = (0, 255, 255)
 WHITE = (255, 255, 255)
 COLOR_LIST = (RED, GREEN, BLUE, CYAN, MAGENTA, YELLOW, WHITE)
+
+#Web App breaks with a lot of detections, so it is limited here
+MAX_DETECTION = 50

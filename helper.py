@@ -92,8 +92,8 @@ def predict(_model, _uploaded_image, confidence, detect_type):
         # If either are None, only keep one
         # Else, merge and take both afterwards
         if st.session_state.model_type == "Built-in":
-            res = _model.predict(_uploaded_image, conf=confidence, classes = [0,2,3], max_det=100)
-            res1 = _model.predict(_uploaded_image, conf=st.session_state.kelp_conf, classes = [1], max_det=100)
+            res = _model.predict(_uploaded_image, conf=confidence, classes = [0,2,3], max_det=settings.MAX_DETECTION)
+            res1 = _model.predict(_uploaded_image, conf=st.session_state.kelp_conf, classes = [1], max_det=settings.MAX_DETECTION)
             # boxes = res[0].boxes
             classes = res[0].names
             detections1 = sv.Detections.from_yolov8(res[0])
