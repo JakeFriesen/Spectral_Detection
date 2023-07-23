@@ -114,6 +114,13 @@ Extras
 
 
 ### Bugs To Fix
-- [ ] Image 168 - detecting with no detections found crashes the app
+- [x] Image 168 - detecting with no detections found crashes the app
 - [x] upload images, detect, upload extra and delete other images
 - [x] data dump class index out of range
+
+
+
+### Install Script for Running the app locally
+
+- Get a clean anaconda environemnt to test it out
+- batch script to auto install stuff with conda and pip (from requirements and locally)

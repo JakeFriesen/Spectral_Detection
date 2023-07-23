@@ -123,9 +123,10 @@ with tab1:
     # If image is selected
     if source_radio == settings.IMAGE:
         # Option for Drop Quadrat selection
-        st.sidebar.radio("Choose Results Formatting", ["Percentage", "Area (Drop Quadrat)"], key = "drop_quadrat")
-        if st.session_state.drop_quadrat == "Area (Drop Quadrat)":
-            st.sidebar.number_input("Side Length of Drop Quadrat (cm)", value = 0, key= 'side_length')
+        if detect_type == "Objects + Segmentation":
+            st.sidebar.radio("Choose Results Formatting", ["Percentage", "Area (Drop Quadrat)"], key = "drop_quadrat")
+            if st.session_state.drop_quadrat == "Area (Drop Quadrat)":
+                st.sidebar.number_input("Side Length of Drop Quadrat (cm)", value = 0, key= 'side_length')
 
         source_img_list = st.sidebar.file_uploader(
             "Choose an image...", 
