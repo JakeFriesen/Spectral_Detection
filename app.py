@@ -72,11 +72,13 @@ detect_type = st.sidebar.radio("Choose Detection Type", ["Objects Only", "Object
 model_type = st.sidebar.radio("Select Model", ["Built-in", "Upload"])
 st.session_state.model_type = model_type
 
+#Main Confidence Slider
 confidence = float(st.sidebar.slider(
     "Select Model Confidence", 0, 100, 40,
     on_change = helper.repredict(),
     )) / 100
 if model_type == 'Built-in':
+    #Kelp Confidence Slider (Only for Built-in)
     kelp_c =st.sidebar.slider(
         "Select Kelp Confidence", 0, 100, 10,
         on_change = helper.repredict(),
@@ -85,7 +87,7 @@ if model_type == 'Built-in':
 
 # Selecting The Model to use
 if model_type == 'Built-in':
-    #Built in model - Will be the best we currently have
+    #Built in model - separate for detection + segmentation
     if detect_type == "Objects Only":
         model_path = Path(settings.DETECTION_MODEL)
     else:
@@ -95,7 +97,6 @@ if model_type == 'Built-in':
     except Exception as ex:
         st.sidebar.write("Unable to load model...")
         st.error(f"Unable to load model. Check the specified path: {model_path}")
-        # st.error(ex)
 elif model_type == 'Upload':
     #Uploaded Model - Whatever you want to try out
     model_file = st.sidebar.file_uploader("Upload a model...", type=("pt"))
@@ -107,7 +108,6 @@ elif model_type == 'Upload':
         model = helper.load_model(model_path)
     except Exception as ex:
         st.sidebar.write("No Model Uploaded Yet...")
-        # st.error(ex)
 
 # Initializing Functions
 # Put here so that the sidebars and title show up while it loads
@@ -115,6 +115,7 @@ if st.session_state["initialized"] == False:
     with st.spinner('Initializing...'):
         helper.init_func()
 
+#Tabs
 source_img = None
 tab1, tab2 = st.tabs(["Detection", "About"])
 
@@ -127,7 +128,7 @@ with tab1:
             st.sidebar.radio("Choose Results Formatting", ["Percentage", "Area (Drop Quadrat)"], key = "drop_quadrat")
             if st.session_state.drop_quadrat == "Area (Drop Quadrat)":
                 st.sidebar.number_input("Side Length of Drop Quadrat (cm)", value = 0, key= 'side_length')
-
+        #Upload Image
         source_img_list = st.sidebar.file_uploader(
             "Choose an image...", 
             type=("jpg", "jpeg", "png", 'bmp', 'webp'), 
@@ -135,20 +136,22 @@ with tab1:
             accept_multiple_files= True)
         if source_img_list:
             try:
+                #Save all uploaded images
                 for img in source_img_list:
                     if not os.path.exists(settings.IMAGES_DIR):
                         os.mkdir(settings.IMAGES_DIR)
                     img_path = Path(settings.IMAGES_DIR, img.name)
                     with open(img_path, 'wb') as file:
                         file.write(img.getbuffer())
+                #Update detection if necessary
                 helper.change_image(source_img_list)
-                # st.write(st.session_state.img_num)
+                #Grab the image from the list
                 source_img = source_img_list[st.session_state.img_num]
             except:
-                st.sidebar.write("There is an issue with writing image files")
+                st.sidebar.write("There is an issue writing image files")
             
+        #Default Images 
         col1, col2 = st.columns(2)
-
         with col1:
             try:
                 if source_img is None:
@@ -161,11 +164,9 @@ with tab1:
                     if not st.session_state['detect']:
                         st.image(source_img, caption="Uploaded Image",
                                 use_column_width=True)
-
             except Exception as ex:
                 st.error("Error occurred while opening the image.")
                 st.error(ex)
-
         with col2:
             if source_img is None:
                 default_detected_image_path = str(settings.DEFAULT_DETECT_IMAGE)
@@ -291,8 +292,6 @@ with tab1:
 
 with tab2:
     st.header("About the App")
-    st.write("Have a question or comment? Let us Know!")
-    st.write("Email me jakefriesen@uvic.ca")
     st.write("Visit the GitHub for this project: https://github.com/JakeFriesen/Spectral_Detection")
 
     st.header("How to Use")

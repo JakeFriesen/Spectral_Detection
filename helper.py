@@ -87,20 +87,15 @@ def predict(_model, _uploaded_image, confidence, detect_type):
     col1, col2 = st.columns(2)
     # Detection Stage
     if st.session_state['predicted'] == False:
-        #TODO: Use sv.Detections.merge([detections1, detections2]) for multiple confidence level support
-        # Check if masks are none FIRST
-        # If either are None, only keep one
-        # Else, merge and take both afterwards
         if st.session_state.model_type == "Built-in":
             res = _model.predict(_uploaded_image, conf=confidence, classes = [0,2,3], max_det=settings.MAX_DETECTION)
             res1 = _model.predict(_uploaded_image, conf=st.session_state.kelp_conf, classes = [1], max_det=settings.MAX_DETECTION)
-            # boxes = res[0].boxes
+            
             classes = res[0].names
             detections1 = sv.Detections.from_yolov8(res[0])
             detections2 = sv.Detections.from_yolov8(res1[0])
             detections = sv.Detections.merge([detections2, detections1])
-            # res = np.concatenate((res.numpy(), res1.numpy()), axis=0)
-            # boxes = np.concatenate((res[0].boxes.xyxy.numpy(), res1[0].boxes.xyxy.numpy()), axis = 0)
+
             if detections1.mask is None:
                 detections.mask = detections2.mask
             elif detections2.mask is None:
@@ -112,9 +107,6 @@ def predict(_model, _uploaded_image, confidence, detect_type):
             detections = sv.Detections.from_yolov8(res[0])
             boxes = detections.xyxy
 
-        # res = _model.predict(_uploaded_image, conf=confidence)
-        # boxes = res[0].boxes
-        # detections = sv.Detections.from_yolov8(res[0])
         if(detections is not None):
             labels = [
                 f"{idx} {classes[class_id]} {confidence:0.2f}"
@@ -201,12 +193,10 @@ def results_math( _image, detect_type):
                     #Just percentage, no diameter
                     result = np.sum(new_images[idx] != 255) / (new_images[idx].size) * 100
                 result_list.append(result)
-            # select = True
             # Append values to respective lists
             index_list.append(idx)
             class_id_list.append(st.session_state.class_list[class_id])
             confidence_list.append(confidence)
-            # select_list.append(select)
     #Add any boxes from manual annotator
     for idx, box in enumerate(new_boxes):
         if box not in detected_boxes:
@@ -284,7 +274,6 @@ def results_math( _image, detect_type):
     #Put data into the excel dataframe
     for index, row in edited_df.iterrows():
         #Only add data if row is selected
-        # if(row['Select'] == True):
         id = index
         class_num = f"(#) " + id
         #Increment number of class
@@ -453,8 +442,6 @@ def interactive_detections():
             width = box[2] - box[0]
             height = box[3] - box[1]
             bboxes.append([box[0], box[1], width, height])
-            # top_coord = [box[0] - (box[2]/2), box[1] - (box[3]/2)]
-            # bboxes.append([top_coord[0], top_coord[1], box[2], box[3]])
         for detections in st.session_state.results[1]:
             labels.append(int(detections[3])) 
         st.session_state['result_dict'][st.session_state.image_name] = {'bboxes': bboxes,'labels':labels}
@@ -636,7 +623,6 @@ def capture_uploaded_video(conf, model, fps,  source_vid, destination_path):
                             boxes = results.boxes.xyxy.cpu().numpy().astype(int)
                             ids = results.boxes.id.cpu().numpy().astype(int)
                             clss = results.boxes.cls.cpu().numpy().astype(int)
-                            #confs = results.boxes.conf.cpu().numpy().astype(float)
 
 
                             for box_num  in range(len(boxes)):
@@ -644,7 +630,6 @@ def capture_uploaded_video(conf, model, fps,  source_vid, destination_path):
                                 box = boxes[box_num]
                                 id = ids[box_num]
                                 cls = clss[box_num]
-                                #conf = confs[box_num]
 
                                 # use id as first array index
                                 # use class as second array index
