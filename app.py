@@ -325,5 +325,10 @@ with tab2:
     st.write("If multiple files are uploaded, after pressing :blue[**Add To List**], pressing :blue[**Detect**] again will load the next image and start the next detection.")
 
     st.header("Video Detection")
-    #TODO: VIDEO STUFF
-    st.write("Under Construction...")
+    st.write("Upload a video file in the sidebar (less than 200MB) and choose :blue[**Capture Rate**] using the slider below.")
+    st.write("Press :blue[**Detect Video Objects**] to start the video processing (this may take a while).")
+    st.write("When complete, press :blue[**Detect Video Objects**] again to view the final processed video.")
+    st.write("Press :blue[**Add to List**] to save the video results.")
+    st.write("press :blue[**Download Results**] to download a csv file containing the detection statistics.")
+    st.write("press :blue[**Download Video**] to download the annotated video with the bounding boxes overlaid.")
+    st.write("press :blue[**Clear List**] to clear all video results from the list.")
