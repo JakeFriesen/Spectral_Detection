@@ -35,9 +35,9 @@ VIDEO_RES = ROOT / 'Detected_Videos'
 
 # ML Model config
 MODEL_DIR = ROOT / 'weights'
-DETECTION_MODEL = MODEL_DIR / 'SLseg_vn.pt'
+DETECTION_MODEL = MODEL_DIR / 'SLseg_Vn.pt'
 # DETECTION_MODEL = MODEL_DIR / 'jun26_urchin_seastar_cucumber.pt'
-SEGMENTATION_MODEL = MODEL_DIR / 'SLseg_vn.pt'
+SEGMENTATION_MODEL = MODEL_DIR / 'SLseg_Vn.pt'
 # SEGMENTATION_MODEL = DETECTION_MODEL
 RESULTS_DIR = ROOT / 'Detected_Images'
 DATA_DIR = ROOT / 'Dump'
